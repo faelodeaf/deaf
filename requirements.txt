@@ -1,3 +1,2 @@
-socket
 numpy
-cv2
+opencv-python

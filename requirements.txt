@@ -1,2 +1,4 @@
+colorama
 numpy
+tqdm
 opencv-python

@@ -27,7 +27,7 @@ class RTSPClient():
 
         if port not in range(0, 65536):
             raise ValueError(
-                f'Port ({port}) passed to RTSPClient() is not valid)')
+                f'Port ({port}) passed to RTSPClient() is not valid')
 
         self.port = port
         self.credentials = credentials
@@ -95,10 +95,10 @@ class RTSPClient():
             self._socket.connect((self.ip, self.port))
             self.is_connected = True
             return self
-        except (socket.timeout, socket.error) as e:
+        except (socket.timeout, socket.error):
             self.is_connected = False
             return None
-        except Exception as e:
+        except Exception:
             self.is_connected = False
             return None
 

@@ -36,7 +36,7 @@ class ScreenshotThread(threading.Thread):
             frame = next(video.decode(video=0))
             img = frame.to_rgb().to_ndarray()
             Image.fromarray(img).save(f"pics/{ip}.jpg")
-        except (av.error.EXIT, av.error.INVALIDDATA):
+        except (av.ExitError, av.InvalidDataError):
             # Server isn't responding
             pass
         except ValueError:

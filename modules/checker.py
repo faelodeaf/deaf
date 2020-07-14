@@ -1,7 +1,8 @@
 import threading
 
 import sys
-sys.path.append('..')
+
+sys.path.append("..")
 
 import config
 from .rtsp import RTSPClient
@@ -11,6 +12,7 @@ class CheckerThread(threading.Thread):
     """
     Checks if given ip is available and tries to brute directories of it.
     """
+
     def __init__(self, check_queue, brute_queue):
         threading.Thread.__init__(self)
         self.check_queue = check_queue

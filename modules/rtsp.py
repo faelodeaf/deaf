@@ -2,12 +2,13 @@ import socket
 from ipaddress import ip_address
 
 import sys
-sys.path.append('..')
+
+sys.path.append("..")
 
 import config
 
 
-class RTSPClient():
+class RTSPClient:
     """
     Implements basic interface for connecting to RTSP stream.
 
@@ -18,7 +19,7 @@ class RTSPClient():
 
     """
 
-    def __init__(self, ip, port=554, credentials='', path=None, timeout=5):
+    def __init__(self, ip, port=554, credentials="", path=None, timeout=5):
         try:
             ip_address(ip)
             self.ip = ip
@@ -26,8 +27,7 @@ class RTSPClient():
             raise e
 
         if port not in range(0, 65536):
-            raise ValueError(
-                f'Port ({port}) passed to RTSPClient() is not valid')
+            raise ValueError(f"Port ({port}) passed to RTSPClient() is not valid")
 
         self.port = port
         self.credentials = credentials
@@ -38,7 +38,7 @@ class RTSPClient():
         self._socket = None
         self._data = None
 
-    def create_packet(self, path, credentials=''):
+    def create_packet(self, path, credentials=""):
         """
         Creates describe packet, for example:
 
@@ -50,10 +50,12 @@ class RTSPClient():
         """
         self.credentials = credentials
         self.path = path
-        self._packet = (f'DESCRIBE rtsp://{self.credentials}@{self.ip}{path} RTSP/1.0\r\n'
-                        + 'CSeq: 2\r\n'
-                        + 'Accept: application/sdp\r\n'
-                        + 'User-Agent: Mozilla/5.0\r\n\r\n')
+        self._packet = (
+            f"DESCRIBE rtsp://{self.credentials}@{self.ip}{path} RTSP/1.0\r\n"
+            + "CSeq: 2\r\n"
+            + "Accept: application/sdp\r\n"
+            + "User-Agent: Mozilla/5.0\r\n\r\n"
+        )
 
     def send_packet(self):
         """
@@ -81,7 +83,7 @@ class RTSPClient():
         Useful for credentials brute forcing.
         """
         if self._data:
-            if '200 OK' in self._data:
+            if "200 OK" in self._data:
                 return True
             else:
                 return False

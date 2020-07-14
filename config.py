@@ -4,8 +4,8 @@ from threading import Lock
 from modules import *
 
 # Number of threads to run CheckThread, BruteThread and ScreenshotThread:
-CHECK_THREADS = 170
-BRUTE_THREADS = 50
+CHECK_THREADS = 200
+BRUTE_THREADS = 100
 SCREENSHOT_THREADS = 50
 
 LOCK = Lock()
@@ -17,17 +17,22 @@ DIRECTORIES = []
 CREDENTIALS = []
 
 ERROR_LIST = [
-    '404 Not Found', '\x15\x00\x00\x00\x02\x02',
-    '400', '403', '451', '503',
+    "404 Not Found",
+    "\x15\x00\x00\x00\x02\x02",
+    "400",
+    "401",
+    "403",
+    "451",
+    "503",
 ]
 
-with open('routes.txt') as file:
+with open("routes.txt") as file:
     for line in file:
-        DIRECTORIES.append(line.strip(' \t\n\r'))
+        DIRECTORIES.append(line.strip(" \t\n\r"))
 
-with open('credentials.txt') as file:
+with open("credentials.txt") as file:
     for line in file:
-        CREDENTIALS.append(line.strip(' \t\n\r'))
+        CREDENTIALS.append(line.strip(" \t\n\r"))
 
 
 def create_bars():
@@ -38,9 +43,9 @@ def create_bars():
     global brute_bar
     global screenshot_bar
 
-    check_bar = tqdm(total=0, desc='Total', position=0, ascii=True)
-    brute_bar = tqdm(total=0, desc='Brute', position=1, ascii=True)
-    screenshot_bar = tqdm(total=0, desc='Screen', position=2, ascii=True)
+    check_bar = tqdm(total=0, desc="Total", position=0, ascii=True)
+    brute_bar = tqdm(total=0, desc="Brute", position=1, ascii=True)
+    screenshot_bar = tqdm(total=0, desc="Screen", position=2, ascii=True)
 
 
 def update_bar(cls, main=False):

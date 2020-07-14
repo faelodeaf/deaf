@@ -1,7 +1,8 @@
 import threading
 
 import sys
-sys.path.append('..')
+
+sys.path.append("..")
 
 import config
 from .rtsp import RTSPClient
@@ -11,6 +12,7 @@ class BruteThread(threading.Thread):
     """
     Brutes given ip to gain access to the stream.
     """
+
     def __init__(self, brute_queue, screenshot_queue):
         threading.Thread.__init__(self)
         self.brute_queue = brute_queue
@@ -18,8 +20,8 @@ class BruteThread(threading.Thread):
 
     def add_to_results(self, creds, ip, path):
         with config.LOCK:
-            with open('result.txt', 'a') as file:
-                file.write(f'rtsp://{creds}@{ip}{path}\n')
+            with open("result.txt", "a") as file:
+                file.write(f"rtsp://{creds}@{ip}{path}\n")
 
     def brute(self, ip, path):
         with RTSPClient(ip, port=config.PORT, timeout=config.SOCKET_TIMEOUT) as client:

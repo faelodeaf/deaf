@@ -27,20 +27,18 @@ class ScreenshotThread(threading.Thread):
 
     def get_screenshot(self, creds, ip, path):
         try:
-            video = av.open(
+            with av.open(
                 f"rtsp://{creds}@{ip}{path}?tcp",
                 options={"rtsp_transport": "tcp"},
                 timeout=60.0,
-            )
-            video.streams.video[0].thread_type = "AUTO"
-            frame = next(video.decode(video=0))
-            img = frame.to_rgb().to_ndarray()
-            Image.fromarray(img).save(f"pics/{ip}.jpg")
+            ) as video:
+                video.streams.video[0].thread_type = "AUTO"
+                frame = next(video.decode(video=0))
+                img = frame.to_rgb().to_ndarray()
+                Image.fromarray(img).save(f"pics/{ip}.jpg")
         except (av.ExitError, av.InvalidDataError):
             # Server isn't responding
             pass
         except ValueError:
             # Some bug in av.logging
             pass
-        finally:
-            video.close()

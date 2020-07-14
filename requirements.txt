@@ -1,4 +1,5 @@
+av
 colorama
 numpy
+Pillow
 tqdm
-opencv-python

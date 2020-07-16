@@ -4,10 +4,11 @@ __pycache__/
 *$py.class
 
 # Project related
-pics/
-!pics/test.png
+reports/
 result.txt
+debug.log
 
 # Development
 .vscode/*
 rtspbrute-env/
+test*

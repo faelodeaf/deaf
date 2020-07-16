@@ -1,36 +1,25 @@
 import threading
+from queue import Queue
 
-import sys
-
-sys.path.append("..")
-
-import config
+from .attack import attack_route
 from .rtsp import RTSPClient
 
 
 class CheckerThread(threading.Thread):
     """
-    Checks if given ip is available and tries to brute directories of it.
+    Attempts to guess the provided target streaming routes and
+    authentication types (basic auth, digest or none at all).
     """
 
-    def __init__(self, check_queue, brute_queue):
+    def __init__(self, check_queue: Queue, brute_queue: Queue) -> None:
         threading.Thread.__init__(self)
         self.check_queue = check_queue
         self.brute_queue = brute_queue
 
-    def check(self, ip):
-        with RTSPClient(ip, port=config.PORT, timeout=config.SOCKET_TIMEOUT) as client:
-            for path in config.DIRECTORIES:
-                client.create_packet(path)
-                client.send_packet()
-                if client.is_available():
-                    self.brute_queue.put((ip, path))
-                    config.update_bar(__class__)
-                    break
-
-    def run(self):
+    def run(self) -> None:
         while True:
-            ip = self.check_queue.get()
-            self.check(ip)
-            config.update_bar(__class__, main=True)
+            target: RTSPClient = self.check_queue.get()
+            result = attack_route(target)
+            if result:
+                self.brute_queue.put(result)
             self.check_queue.task_done()

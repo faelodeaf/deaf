@@ -1,93 +1,96 @@
-import ipaddress
+import logging
+from logging import Formatter
+import time
+from pathlib import Path
 from queue import Queue
 
-import av
-
-# Disables warnings
-av.logging.set_level(av.logging.ERROR)
+from colorama import init, Fore, Style
 
 import config
 from modules import *
 
+# Logging module set up
+logging.basicConfig(
+    level=logging.INFO, format="[%(asctime)s] [%(levelname)s] %(message)s",
+)
+debugger = logging.getLogger("debugger")
+debugger.setLevel(logging.DEBUG)
+file_handler = logging.FileHandler(config.DEBUG_LOG_FILE, "w")
+file_handler.setFormatter(
+    logging.Formatter("[%(asctime)s] [%(levelname)s] [%(funcName)s] %(message)s")
+)
+debugger.addHandler(file_handler)
+debugger.propagate = False
 
-def parse_input_line(input_line):
-    """
-    Parse input line, if it containts IP, return it.
-    Supported inputs:
-        1) 1.2.3.4
-        2) 192.168.0.0/24
-        3) 1.2.3.4 - 5.6.7.8
-    Any non-ip value will be ignored.
-    """
-
-    ip_object = None
-    try:
-        # Input is in range form ("1.2.3.4 - 5.6.7.8"):
-        if "-" in input_line:
-            input_ips = input_line.split("-")
-            ranges = [
-                ipaddr
-                for ipaddr in ipaddress.summarize_address_range(
-                    ipaddress.IPv4Address(input_ips[0]),
-                    ipaddress.IPv4Address(input_ips[1]),
-                )
-            ]
-            ip_object = ranges
-        # Input is in CIDR form ("192.168.0.0/24"):
-        elif "/" in input_line:
-            network = ipaddress.ip_network(input_line)
-            ip_object = network
-        # Input is a single ip ("1.1.1.1"):
-        else:
-            ip = ipaddress.ip_address(input_line)
-            ip_object = ip
-    except ValueError:
-        # If we get any non-ip value just ignore it
-        pass
-
-    # The object is just one ip, simply yield it:
-    if isinstance(ip_object, ipaddress.IPv4Address):
-        yield str(ip_object)
-    # The object is a network, yield every host in it:
-    else:
-        for cidr in ip_object:
-            for host in cidr.hosts():
-                yield str(host)
+# Redirect PyAV logs only to file
+libav_logger = logging.getLogger("libav")
+libav_logger.setLevel(logging.DEBUG)
+libav_logger.addHandler(file_handler)
+libav_logger.propagate = False
+av_logger = logging.getLogger("av")
+av_logger.setLevel(logging.DEBUG)
+av_logger.addHandler(file_handler)
+av_logger.propagate = False
 
 
 if __name__ == "__main__":
-    config.create_bars()
+    init()
+    start_datetime = time.strftime("%Y.%m.%d-%H.%M.%S")
+
+    config.CREDENTIALS = utils.load_txt("credentials.txt", "credentials")
+    config.ROUTES = utils.load_txt("routes.txt", "routes")
+    config.TARGETS = utils.load_txt("hosts.txt", "targets")
+    logging.info(f"{Fore.GREEN}Starting...\n{Style.RESET_ALL}")
+
+    utils.create_folder(config.PICS_FOLDER)
+    utils.create_file(config.RESULT_FILE)
 
     check_queue = Queue()
     brute_queue = Queue()
     screenshot_queue = Queue()
 
+    check_threads = []
+    brute_threads = []
+    screenshot_threads = []
+
     for _ in range(config.CHECK_THREADS):
         check_worker = CheckerThread(check_queue, brute_queue)
-        check_worker.setDaemon(True)
+        check_worker.daemon = True
         check_worker.start()
+        check_threads.append(check_worker)
 
     for _ in range(config.BRUTE_THREADS):
         brute_worker = BruteThread(brute_queue, screenshot_queue)
-        brute_worker.setDaemon(True)
+        brute_worker.daemon = True
         brute_worker.start()
+        brute_threads.append(brute_worker)
 
     for _ in range(config.SCREENSHOT_THREADS):
-        screenshoot_worker = ScreenshotThread(screenshot_queue)
-        screenshoot_worker.setDaemon(True)
-        screenshoot_worker.start()
+        screenshot_worker = ScreenshotThread(screenshot_queue)
+        screenshot_worker.daemon = True
+        screenshot_worker.start()
+        screenshot_threads.append(screenshot_worker)
 
-    with open("hosts.txt") as file:
-        for line in file:
-            for ip in parse_input_line(line.strip(" \t\n\r")):
-                check_queue.put(ip)
-    config.check_bar.total = check_queue.qsize()
+    for ip in config.TARGETS:
+        check_queue.put(RTSPClient(ip))
 
     check_queue.join()
-    config.check_bar.close()
-
+    [t.join for t in check_threads]
     brute_queue.join()
-    config.brute_bar.close()
-
+    [t.join for t in brute_threads]
     screenshot_queue.join()
-    config.screenshot_bar.close()
+    [t.join for t in screenshot_threads]
+
+    print()
+    file_handler.close()
+    screenshots = list(config.PICS_FOLDER.iterdir())
+    logging.info(f"{Fore.GREEN}Saved {len(screenshots)} screenshots{Style.RESET_ALL}")
+    logging.info(f"{Fore.GREEN}Report available at {str(config.REPORTS_FOLDER / start_datetime)}{Style.RESET_ALL}")
+    utils.save_result(
+        config.REPORTS_FOLDER / f"{start_datetime}",
+        config.PICS_FOLDER,
+        config.DEBUG_LOG_FILE,
+        config.RESULT_FILE,
+    )
+    utils.generate_html(config.REPORTS_FOLDER / f"{start_datetime}", config.REPORTS_FOLDER / f"{start_datetime}" / config.PICS_FOLDER.name)
+

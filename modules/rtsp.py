@@ -1,25 +1,34 @@
+import base64
+import hashlib
 import socket
-from ipaddress import ip_address
-
 import sys
+from enum import Enum
+from ipaddress import ip_address
+from typing import List
 
 sys.path.append("..")
 
 import config
 
 
+class AuthMethod(Enum):
+    NONE = 0
+    BASIC = 1
+    DIGEST = 2
+
+
+class Status(Enum):
+    CONNECTED = 0
+    TIMEOUT = 1
+    BLOCKED = 2
+    UNIDENTIFIED = 100
+    NONE = -1
+
+
 class RTSPClient:
-    """
-    Implements basic interface for connecting to RTSP stream.
-
-    Usage:
-    >>> with RTSPClient('127.0.0.1') as client:
-            client.create_packet('/webcam', 'admin:12345')
-            client.send_packet()
-
-    """
-
-    def __init__(self, ip, port=554, credentials="", path=None, timeout=5):
+    def __init__(
+        self, ip: str, port: int = 554, credentials: str = "", timeout: int = 2
+    ) -> None:
         try:
             ip_address(ip)
             self.ip = ip
@@ -31,14 +40,38 @@ class RTSPClient:
 
         self.port = port
         self.credentials = credentials
-        self.path = path
+        self.routes: List[str] = []
         self.timeout = timeout
-        self.is_connected = None
+        self.status: Status = Status.NONE
+        self.auth_method: AuthMethod = AuthMethod.NONE
+        self.realm: str = None
+        self.nonce: str = None
+        self.available: bool = False
+
+        self._socket = socket.socket()
         self._packet = None
-        self._socket = None
         self._data = None
 
-    def create_packet(self, path, credentials=""):
+    @property
+    def route(self):
+        if len(self.routes) > 0:
+            return self.routes[0]
+        else:
+            return ""
+
+    @property
+    def route_found(self):
+        return len(self.routes) > 0
+
+    @property
+    def credentials_found(self):
+        return bool(self.credentials)
+
+    def connect(self):
+        self._socket.close()
+        self._socket = socket.create_connection((self.ip, self.port), self.timeout)
+
+    def create_packet(self, path="", credentials=""):
         """
         Creates describe packet, for example:
 
@@ -48,14 +81,48 @@ class RTSPClient:
         User-Agent: Mozilla/5.0
 
         """
-        self.credentials = credentials
-        self.path = path
-        self._packet = (
-            f"DESCRIBE rtsp://{self.credentials}@{self.ip}{path} RTSP/1.0\r\n"
-            + "CSeq: 2\r\n"
-            + "Accept: application/sdp\r\n"
-            + "User-Agent: Mozilla/5.0\r\n\r\n"
-        )
+
+        def _gen_auth_str(cred):
+            if (
+                self.auth_method is AuthMethod.NONE
+                or self.auth_method is AuthMethod.BASIC
+            ):
+                encoded_cred = base64.b64encode(cred.encode("ascii"))
+                auth_str = f"Authorization: Basic {str(encoded_cred, 'utf-8')}"
+            else:
+                username, password = cred.split(":")
+                uri = f"rtsp://{self.ip}:{self.port}{path}"
+                HA1 = hashlib.md5(
+                    f"{username}:{self.realm}:{password}".encode("ascii")
+                ).hexdigest()
+                HA2 = hashlib.md5(f"DESCRIBE:{uri}".encode("ascii")).hexdigest()
+                response = hashlib.md5(
+                    f"{HA1}:{self.nonce}:{HA2}".encode("ascii")
+                ).hexdigest()
+                auth_str = f"Authorization: Digest "
+                auth_str += f'username="{username}", '
+                auth_str += f'realm="{self.realm}", '
+                auth_str += f'nonce="{self.nonce}", '
+                auth_str += f'uri="{uri}", '
+                auth_str += f'response="{response}"'
+            return auth_str
+
+        def _gen_describe(path, cred):
+            packet = f"DESCRIBE rtsp://{self.ip}:{self.port}{path} RTSP/1.0\r\n"
+            packet += "CSeq: 2\r\n"
+            if cred:
+                auth_str = _gen_auth_str(cred)
+                packet += f"{auth_str}\r\n"
+            packet += "User-Agent: Mozilla/5.0\r\n"
+            packet += "Accept: application/sdp\r\n"
+            packet += "\r\n"
+            return packet
+
+        if not path:
+            path = self.route
+        if not credentials:
+            credentials = self.credentials
+        self._packet = _gen_describe(path, credentials)
 
     def send_packet(self):
         """
@@ -64,46 +131,3 @@ class RTSPClient:
         self._socket.sendall(self._packet.encode())
         self._data = repr(self._socket.recv(1024))
 
-    def is_available(self):
-        """
-        Checks if data doesn't contain errors.
-        Useful for brute forcing directories.
-        """
-        if self._data:
-            if all(error not in self._data for error in config.ERROR_LIST):
-                return True
-            else:
-                return False
-        else:
-            return False
-
-    def is_authorized(self):
-        """
-        Checks if data contains '200 OK', basically that means you're authorized.
-        Useful for credentials brute forcing.
-        """
-        if self._data:
-            if "200 OK" in self._data:
-                return True
-            else:
-                return False
-        else:
-            return False
-
-    def __enter__(self):
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.settimeout(self.timeout)
-        try:
-            self._socket.connect((self.ip, self.port))
-            self.is_connected = True
-            return self
-        except (socket.timeout, socket.error):
-            self.is_connected = False
-            return None
-        except Exception:
-            self.is_connected = False
-            return None
-
-    def __exit__(self, *args):
-        self._socket.close()
-        return True

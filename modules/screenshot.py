@@ -1,44 +1,32 @@
-import threading
-
-import av
-from PIL import Image
-
 import sys
+import threading
+from queue import Queue
 
 sys.path.append("..")
 import config
 
+from .attack import get_screenshot, validate_stream
+from .rtsp import RTSPClient
+from .utils import append_to, get_camera_rtsp_url
+
 
 class ScreenshotThread(threading.Thread):
     """
-    Uses opencv-python for capturing rtsp stream and taking screenshots.
+    Uses PyAV for capturing RTSP stream and taking screenshot.
     """
 
-    def __init__(self, screenshot_queue):
+    def __init__(self, screenshot_queue: Queue) -> None:
         threading.Thread.__init__(self)
         self.screenshot_queue = screenshot_queue
 
-    def run(self):
+    def run(self) -> None:
         while True:
-            creds, ip, path = self.screenshot_queue.get()
-            self.get_screenshot(creds, ip, path)
-            config.update_bar(__class__)
-            self.screenshot_queue.task_done()
+            target: RTSPClient = self.screenshot_queue.get()
 
-    def get_screenshot(self, creds, ip, path):
-        try:
-            with av.open(
-                f"rtsp://{creds}@{ip}{path}?tcp",
-                options={"rtsp_transport": "tcp"},
-                timeout=60.0,
-            ) as video:
-                video.streams.video[0].thread_type = "AUTO"
-                frame = next(video.decode(video=0))
-                img = frame.to_rgb().to_ndarray()
-                Image.fromarray(img).save(f"pics/{ip}.jpg")
-        except (av.ExitError, av.InvalidDataError):
-            # Server isn't responding
-            pass
-        except ValueError:
-            # Some bug in av.logging
-            pass
+            result = validate_stream(target)
+            if result:
+                saved = get_screenshot(target)
+                if saved:
+                    append_to(config.RESULT_FILE, f"{get_camera_rtsp_url(target)}\n")
+
+            self.screenshot_queue.task_done()

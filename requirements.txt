@@ -1,5 +1,3 @@
 av
 colorama
-numpy
 Pillow
-tqdm

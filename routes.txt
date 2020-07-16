@@ -1,4 +1,6 @@
+/1
 /11
+/12
 /Streaming/Channels/1
 /ch01.264
 /1.AMP
@@ -78,7 +80,6 @@
 /vis
 /wfov
 /video.h264
-/12
 /ch1-s1
 /live3.sdp
 /onvif-media/media.amp
@@ -103,7 +104,6 @@
 /cam1/onvif-h264
 /ucast/11
 /LowResolutionVideo
-/1
 /live/ch00_0
 /medias2
 /cam/realmonitor?channel=1&subtype=1

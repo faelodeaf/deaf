@@ -27,7 +27,7 @@ class Status(Enum):
 
 class RTSPClient:
     def __init__(
-        self, ip: str, port: int = 554, credentials: str = "", timeout: int = 2
+        self, ip: str, port: int = 554, credentials: str = ":", timeout: int = 2
     ) -> None:
         try:
             ip_address(ip)
@@ -82,11 +82,10 @@ class RTSPClient:
 
         """
 
-        def _gen_auth_str(cred):
-            if (
-                self.auth_method is AuthMethod.NONE
-                or self.auth_method is AuthMethod.BASIC
-            ):
+        def _gen_auth_str(cred, option):
+            if self.auth_method is AuthMethod.NONE:
+                return ""
+            elif self.auth_method is AuthMethod.BASIC:
                 encoded_cred = base64.b64encode(cred.encode("ascii"))
                 auth_str = f"Authorization: Basic {str(encoded_cred, 'utf-8')}"
             else:
@@ -95,7 +94,7 @@ class RTSPClient:
                 HA1 = hashlib.md5(
                     f"{username}:{self.realm}:{password}".encode("ascii")
                 ).hexdigest()
-                HA2 = hashlib.md5(f"DESCRIBE:{uri}".encode("ascii")).hexdigest()
+                HA2 = hashlib.md5(f"{option}:{uri}".encode("ascii")).hexdigest()
                 response = hashlib.md5(
                     f"{HA1}:{self.nonce}:{HA2}".encode("ascii")
                 ).hexdigest()
@@ -111,7 +110,7 @@ class RTSPClient:
             packet = f"DESCRIBE rtsp://{self.ip}:{self.port}{path} RTSP/1.0\r\n"
             packet += "CSeq: 2\r\n"
             if cred:
-                auth_str = _gen_auth_str(cred)
+                auth_str = _gen_auth_str(cred, "DESCRIBE")
                 packet += f"{auth_str}\r\n"
             packet += "User-Agent: Mozilla/5.0\r\n"
             packet += "Accept: application/sdp\r\n"

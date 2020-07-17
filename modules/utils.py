@@ -32,6 +32,7 @@ div.gallery img {width: 100%;height: auto;}
 var text = img.alt;
 navigator.clipboard.writeText(text);}</script>
     """
+    logger.debug(f"Generating {path}")
     with path.open("w") as f:
         f.write(html_head)
         f.write("\n")
@@ -40,10 +41,12 @@ navigator.clipboard.writeText(text);}</script>
 
 
 def create_folder(path: Path):
+    logger.debug(f"Creating {path}")
     path.mkdir(parents=True)
 
 
 def create_file(path: Path):
+    logger.debug(f"Creating {path}")
     path.open("w", encoding="utf-8")
 
 

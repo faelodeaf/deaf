@@ -35,7 +35,6 @@ av_logger.propagate = False
 
 if __name__ == "__main__":
     init()
-    start_datetime = time.strftime("%Y.%m.%d-%H.%M.%S")
 
     config.CREDENTIALS = utils.load_txt("credentials.txt", "credentials")
     config.ROUTES = utils.load_txt("routes.txt", "routes")
@@ -44,6 +43,7 @@ if __name__ == "__main__":
 
     utils.create_folder(config.PICS_FOLDER)
     utils.create_file(config.RESULT_FILE)
+    utils.generate_html(config.HTML_FILE)
 
     check_queue = Queue()
     brute_queue = Queue()
@@ -83,14 +83,7 @@ if __name__ == "__main__":
 
     print()
     file_handler.close()
+    config.DEBUG_LOG_FILE.rename(config.REPORT_FOLDER / config.DEBUG_LOG_FILE.name)
     screenshots = list(config.PICS_FOLDER.iterdir())
     logging.info(f"{Fore.GREEN}Saved {len(screenshots)} screenshots{Style.RESET_ALL}")
-    logging.info(f"{Fore.GREEN}Report available at {str(config.REPORTS_FOLDER / start_datetime)}{Style.RESET_ALL}")
-    utils.save_result(
-        config.REPORTS_FOLDER / f"{start_datetime}",
-        config.PICS_FOLDER,
-        config.DEBUG_LOG_FILE,
-        config.RESULT_FILE,
-    )
-    utils.generate_html(config.REPORTS_FOLDER / f"{start_datetime}", config.REPORTS_FOLDER / f"{start_datetime}" / config.PICS_FOLDER.name)
-
+    logging.info(f"{Fore.GREEN}Report available at {str(config.REPORT_FOLDER)}{Style.RESET_ALL}")

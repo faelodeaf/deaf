@@ -7,7 +7,7 @@ import config
 
 from .attack import get_screenshot, validate_stream
 from .rtsp import RTSPClient
-from .utils import append_to, get_camera_rtsp_url
+from .utils import append_result
 
 
 class ScreenshotThread(threading.Thread):
@@ -25,8 +25,8 @@ class ScreenshotThread(threading.Thread):
 
             result = validate_stream(target)
             if result:
-                saved = get_screenshot(target)
-                if saved:
-                    append_to(config.RESULT_FILE, f"{get_camera_rtsp_url(target)}\n")
+                image = get_screenshot(target)
+                if image:
+                    append_result(config.RESULT_FILE, config.HTML_FILE, image, target)
 
             self.screenshot_queue.task_done()

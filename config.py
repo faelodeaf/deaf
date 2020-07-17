@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 from typing import List
 
@@ -8,18 +9,15 @@ SCREENSHOT_THREADS: int = 50
 PORT: int = 554
 SOCKET_TIMEOUT: int = 2
 
+
 CREDENTIALS: List[str] = []
 ROUTES: List[str] = []
 TARGETS: List[str] = []
-PICS_FOLDER = Path.cwd() / 'pics'
-REPORTS_FOLDER = Path.cwd() / 'reports'
-DEBUG_LOG_FILE = Path.cwd() / 'debug.log'
-RESULT_FILE = Path.cwd() / 'result.txt'
 
-ERROR_LIST = [
-    "404 Not Found",
-    "\x15\x00\x00\x00\x02\x02",
-    "400",
-    "451",
-    "503",
-]
+
+start_datetime = time.strftime("%Y.%m.%d-%H.%M.%S")
+DEBUG_LOG_FILE = Path.cwd() / 'debug.log'
+REPORT_FOLDER = Path.cwd() / 'reports' / start_datetime
+PICS_FOLDER = REPORT_FOLDER / 'pics'
+RESULT_FILE = REPORT_FOLDER / 'result.txt'
+HTML_FILE = REPORT_FOLDER / 'index.html'

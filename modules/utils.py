@@ -1,18 +1,20 @@
 import ipaddress
 import logging
+import re
 import sys
 import shutil
 import threading
 from pathlib import Path
 from typing import List
 
-from modules.rtsp import AuthMethod
+from modules.rtsp import AuthMethod, RTSPClient
 
 logger = logging.getLogger("debugger")
 
 global_lock = threading.Lock()
 
-def generate_html(target: Path, pics: Path):
+
+def generate_html(path: Path):
     html_head = """
 <!DOCTYPE html><html><head><style>    
 html{background-color: #141414}
@@ -28,47 +30,47 @@ div.gallery img {width: 100%;height: auto;}
     html_script = """
 <script>function f(img){
 var text = img.alt;
-navigator.clipboard.writeText(text);}
-</script>
+navigator.clipboard.writeText(text);}</script>
     """
-    html_file = target / 'index.html'
-    with html_file.open('w') as f:
+    with path.open("w") as f:
         f.write(html_head)
-        for image in pics.iterdir():
-            src = f"{pics.name}/{image.name}"
-            data = image.stem.split("_")
-            path = f"rtsp://{data[0]}:{data[1]}@{data[2]}:554/{data[3]}"
-            html_pic = f"""
-<div class="responsive"><div class="gallery">
-<img src="{src}" alt="{path}" width="600" height="400" onclick="f(this)"></div>
-</div>
-            """
-            f.write(html_pic)
+        f.write("\n")
         f.write(html_script)
         f.write("</body></html>")
 
 
-def save_result(final_path: Path, *args: Path):
-    final_path.mkdir(parents=True, exist_ok=True)
-    for path in args:
-        path_name = path.name
-        path.rename(final_path / path_name)
-
-
 def create_folder(path: Path):
-    shutil.rmtree(path, ignore_errors=True)
-    path.mkdir()
+    path.mkdir(parents=True)
 
 
 def create_file(path: Path):
-    path.unlink(missing_ok=True)
     path.open("w", encoding="utf-8")
 
 
-def append_to(file: str, data):
+def append_result(result_file: Path, html_file: Path, pic_file: Path, rtsp: RTSPClient):
     with global_lock:
-        with open(file, "a") as f:
-            f.write(data)
+        # Append to .txt result file
+        with result_file.open("a") as f:
+            f.write(f"{get_camera_rtsp_url(rtsp)}\n")
+
+        # Insert to .html gallery file
+        if not pic_file.exists():
+            return
+        with html_file.open("r") as f:
+            data = f.readlines()
+        html_pic = f"""
+        <div class="responsive"><div class="gallery">
+        <img src="{pic_file}" alt="{get_camera_rtsp_url(rtsp)}" width="600" height="400" onclick="f(this)"></div></div>
+        """
+        data.insert(-4, html_pic)
+        with html_file.open("w") as f:
+            f.writelines(data)
+
+
+def escape_chars(s: str):
+    # Escape every character that's not a letter,
+    # '_', '-', '.' or space with an '_'.
+    return re.sub("[^\w\-_\. ]", "_", s)
 
 
 def detect_code(data: str):

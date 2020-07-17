@@ -188,12 +188,13 @@ def stream_validate(target: RTSPClient):
     return False
 
 
-def get_screenshot(target: RTSPClient) -> bool:
+def get_screenshot(target: RTSPClient) -> str:
     username: str
     password: str
     file_name: str
     username, password = target.credentials.split(":")
-    file_name = f"{username}_{password}_{target.ip}_{target.route.lstrip('/')}"
+    file_name = utils.escape_chars(f"{username}_{password}_{target.ip}_{target.port}_{target.route.lstrip('/')}.jpg")
+    file_path = config.PICS_FOLDER / file_name
 
     try:
         with av.open(
@@ -203,15 +204,13 @@ def get_screenshot(target: RTSPClient) -> bool:
         ) as video:
             video.streams.video[0].thread_type = "AUTO"
             for frame in video.decode(video=0):
-                if not isinstance(frame, av.VideoFrame):
-                    logger.debug(f"Not av.VideoFrame: {type(frame)}")
-                frame.to_image().save(config.PICS_FOLDER / f"{file_name}.jpg")
+                img = frame.to_image().save(file_path)
                 break
     except Exception as e:
         logger.debug(
             f"get_screenshot failed with {utils.get_camera_rtsp_url(target)}: {repr(e)}"
         )
-        return False
+        return ""
 
     logging.info(f"Captured screenshot for {utils.get_camera_rtsp_url(target)}")
-    return True
+    return file_path

@@ -19,7 +19,10 @@ class CheckerThread(threading.Thread):
     def run(self) -> None:
         while True:
             target: RTSPClient = self.check_queue.get()
+
             result = attack_route(target)
             if result:
                 self.brute_queue.put(result)
+            target._socket.close()
+
             self.check_queue.task_done()

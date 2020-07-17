@@ -28,5 +28,6 @@ class ScreenshotThread(threading.Thread):
                 image = get_screenshot(target)
                 if image:
                     append_result(config.RESULT_FILE, config.HTML_FILE, image, target)
+            target._socket.close()
 
             self.screenshot_queue.task_done()

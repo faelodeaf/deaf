@@ -80,6 +80,8 @@ def detect_auth_method(target):
         start = data.find(var)
         begin = data.find('"', start) + 1
         end = data.find('"', begin)
+        if "Login to " in data[begin:end]:
+            logger.debug(f"{get_camera_rtsp_url(target)} has LOGIN TO")
         return data[begin:end].lstrip("Login to ")
 
     data = str(target._data)

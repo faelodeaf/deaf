@@ -2,7 +2,6 @@ import ipaddress
 import logging
 import re
 import sys
-import shutil
 import threading
 from pathlib import Path
 from typing import List
@@ -15,8 +14,7 @@ global_lock = threading.Lock()
 
 
 def generate_html(path: Path):
-    html_head = """
-<!DOCTYPE html><html><head><style>    
+    html_head = """<!DOCTYPE html><html><head><style>    
 html{background-color: #141414}
 img{cursor: pointer;border: 2px solid #707070;}
 img:hover {border: 2px solid #8c8c8c;}
@@ -25,13 +23,10 @@ div.gallery img {width: 100%;height: auto;}
 .responsive {padding: 6px 6px;float: left;width: 25%;}
 @media only screen and (max-width: 700px){.responsive {width: 50%;margin: 1px 0;}}
 @media only screen and (max-width: 500px){.responsive {width: 100%;}}
-</style></head><body>
-    """
-    html_script = """
-<script>function f(img){
+</style></head><body>\n"""
+    html_script = """\n<script>function f(img){
 var text = img.alt;
-navigator.clipboard.writeText(text);}</script>
-    """
+navigator.clipboard.writeText(text);}</script>"""
     logger.debug(f"Generating {path}")
     with path.open("w") as f:
         f.write(html_head)
@@ -62,8 +57,8 @@ def append_result(result_file: Path, html_file: Path, pic_file: Path, rtsp: RTSP
         with html_file.open("r") as f:
             data = f.readlines()
         html_pic = f"""
-        <div class="responsive"><div class="gallery">
-        <img src="{pic_file}" alt="{get_camera_rtsp_url(rtsp)}" width="600" height="400" onclick="f(this)"></div></div>
+<div class="responsive"><div class="gallery">
+<img src="{pic_file.parent.name}/{pic_file.name}" alt="{get_camera_rtsp_url(rtsp)}" width="600" height="400" onclick="f(this)"></div></div>
         """
         data.insert(-4, html_pic)
         with html_file.open("w") as f:

@@ -68,7 +68,7 @@ def append_result(result_file: Path, html_file: Path, pic_file: Path, rtsp: RTSP
 def escape_chars(s: str):
     # Escape every character that's not a letter,
     # '_', '-', '.' or space with an '_'.
-    return re.sub("[^\w\-_\. ]", "_", s)
+    return re.sub(r"[^\w-_. ]", "_", s)
 
 
 def detect_code(data: str):
@@ -147,8 +147,8 @@ def parse_input_line(input_line: str) -> List[str]:
             ranges = [
                 ipaddr
                 for ipaddr in ipaddress.summarize_address_range(
-                    ipaddress.IPv4Address(input_ips[0]),
-                    ipaddress.IPv4Address(input_ips[1]),
+                    ipaddress.IPv4Address(input_ips[0].strip()),
+                    ipaddress.IPv4Address(input_ips[1].strip()),
                 )
             ]
             return [str(ip) for r in ranges for ip in r]
@@ -164,5 +164,4 @@ def parse_input_line(input_line: str) -> List[str]:
             return [str(ip)]
     except ValueError:
         # If we get any non-ip value just ignore it
-        pass
-    return []
+        return []

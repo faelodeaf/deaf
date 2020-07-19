@@ -68,7 +68,7 @@ def append_result(result_file: Path, html_file: Path, pic_file: Path, rtsp: RTSP
 def escape_chars(s: str):
     # Escape every character that's not a letter,
     # '_', '-', '.' or space with an '_'.
-    return re.sub(r"[^\w-_. ]", "_", s)
+    return re.sub(r"[^\w\-_. ]", "_", s)
 
 
 def detect_code(data: str):

@@ -2,9 +2,12 @@ import time
 from pathlib import Path
 from typing import List
 
+# Less SCREENSHOT_THREADS leads to more successful screenshots.
+# On authors machine 20-30 is most effective number.
+# It's better to not increase SCREENSHOT_THREADS, it's CPU-heavy.
 CHECK_THREADS: int = 500
 BRUTE_THREADS: int = 200
-SCREENSHOT_THREADS: int = 10 # Less threads leads to more successful screenshots
+SCREENSHOT_THREADS: int = 20
 
 PORT: int = 554
 SOCKET_TIMEOUT: int = 2

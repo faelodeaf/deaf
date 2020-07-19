@@ -5,7 +5,7 @@ from queue import Queue
 sys.path.append("..")
 import config
 
-from .attack import get_screenshot, validate_stream
+from .attack import get_screenshot
 from .rtsp import RTSPClient
 from .utils import append_result
 
@@ -23,11 +23,8 @@ class ScreenshotThread(threading.Thread):
         while True:
             target: RTSPClient = self.screenshot_queue.get()
 
-            result = validate_stream(target)
-            if result:
-                image = get_screenshot(target)
-                if image:
-                    append_result(config.RESULT_FILE, config.HTML_FILE, image, target)
-            target._socket.close()
+            image = get_screenshot(target)
+            if image:
+                append_result(config.RESULT_FILE, config.HTML_FILE, image, target)
 
             self.screenshot_queue.task_done()

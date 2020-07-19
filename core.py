@@ -1,6 +1,7 @@
 import logging
 from queue import Queue
 
+import av
 from colorama import init, Fore, Style
 
 import config
@@ -28,6 +29,9 @@ av_logger = logging.getLogger("av")
 av_logger.setLevel(logging.DEBUG)
 av_logger.addHandler(file_handler)
 av_logger.propagate = False
+# This disables ValueError from av module printing to console, but this also
+# means we won't get any logs from av, if they aren't FATAL or PANIC level.
+av.logging.set_level(av.logging.FATAL)
 
 
 if __name__ == "__main__":

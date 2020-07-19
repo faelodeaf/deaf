@@ -51,7 +51,7 @@ def append_result(result_file: Path, html_file: Path, pic_file: Path, rtsp: RTSP
     with global_lock:
         # Append to .txt result file
         with result_file.open("a") as f:
-            f.write(f"{get_camera_rtsp_url(rtsp)}\n")
+            f.write(f"{str(rtsp)}\n")
 
         # Insert to .html gallery file
         if not pic_file.exists():
@@ -60,7 +60,7 @@ def append_result(result_file: Path, html_file: Path, pic_file: Path, rtsp: RTSP
             data = f.readlines()
         html_pic = f"""
 <div class="responsive"><div class="gallery">
-<img src="{pic_file.parent.name}/{pic_file.name}" alt="{get_camera_rtsp_url(rtsp)}" width="600" height="400" onclick="f(this)"></div></div>
+<img src="{pic_file.parent.name}/{pic_file.name}" alt="{str(rtsp)}" width="600" height="400" onclick="f(this)"></div></div>
         """
         data.insert(-4, html_pic)
         with html_file.open("w") as f:
@@ -82,11 +82,9 @@ def detect_auth_method(target):
         start = data.find(var)
         begin = data.find('"', start) + 1
         end = data.find('"', begin)
-        if "Login to " in data[begin:end]:
-            logger.debug(f"{get_camera_rtsp_url(target)} has LOGIN TO")
         return data[begin:end]
 
-    data = str(target._data)
+    data = str(target.data)
 
     if "Basic" in data:
         auth_method = "basic"
@@ -100,13 +98,7 @@ def detect_auth_method(target):
         auth_method = "no"
         target.auth_method = AuthMethod.NONE
 
-    logger.debug(
-        f"Stream {get_camera_rtsp_url(target)} uses {auth_method} authentication method\n"
-    )
-
-
-def get_camera_rtsp_url(rtsp_client):
-    return f"rtsp://{rtsp_client.credentials}@{rtsp_client.ip}:{rtsp_client.port}{rtsp_client.route}"
+    logger.debug(f"Stream {str(target)} uses {auth_method} authentication method\n")
 
 
 def load_txt(path: str, name: str) -> List[str]:

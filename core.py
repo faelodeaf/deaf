@@ -1,7 +1,4 @@
 import logging
-from logging import Formatter
-import time
-from pathlib import Path
 from queue import Queue
 
 from colorama import init, Fore, Style

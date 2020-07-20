@@ -18,6 +18,8 @@ class BruteThread(threading.Thread):
     def run(self) -> None:
         while True:
             target: RTSPClient = self.brute_queue.get()
+            if target is None:
+                break
 
             result = attack_credentials(target)
             if result:

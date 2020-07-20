@@ -22,6 +22,8 @@ class ScreenshotThread(threading.Thread):
     def run(self) -> None:
         while True:
             target: RTSPClient = self.screenshot_queue.get()
+            if target is None:
+                break
 
             image = get_screenshot(target)
             if image:

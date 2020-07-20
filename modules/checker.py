@@ -20,6 +20,8 @@ class CheckerThread(threading.Thread):
     def run(self) -> None:
         while True:
             target: RTSPClient = self.check_queue.get()
+            if target is None:
+                break
 
             result = attack_route(target)
             if result:

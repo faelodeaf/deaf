@@ -76,12 +76,14 @@ if __name__ == "__main__":
     for ip in config.TARGETS:
         check_queue.put(RTSPClient(ip))
 
+    # Wait until all items in the queue have been gotten and processed.
+    # Then put sentinel value in queue to end all threads.
     check_queue.join()
-    [t.join for t in check_threads]
+    [check_queue.put(None) for _ in range(config.CHECK_THREADS)]
     brute_queue.join()
-    [t.join for t in brute_threads]
+    [brute_queue.put(None) for _ in range(config.BRUTE_THREADS)]
     screenshot_queue.join()
-    [t.join for t in screenshot_threads]
+    [screenshot_queue.put(None) for _ in range(config.SCREENSHOT_THREADS)]
 
     print()
     file_handler.close()

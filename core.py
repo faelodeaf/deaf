@@ -56,21 +56,18 @@ if __name__ == "__main__":
     debugger.debug(f"Starting CheckerThreads")
     for _ in range(config.CHECK_THREADS):
         check_worker = CheckerThread(check_queue, brute_queue)
-        check_worker.daemon = True
         check_worker.start()
         check_threads.append(check_worker)
 
     debugger.debug(f"Starting BruteThreads")
     for _ in range(config.BRUTE_THREADS):
         brute_worker = BruteThread(brute_queue, screenshot_queue)
-        brute_worker.daemon = True
         brute_worker.start()
         brute_threads.append(brute_worker)
 
     debugger.debug(f"Starting ScreenshotThreads")
     for _ in range(config.SCREENSHOT_THREADS):
         screenshot_worker = ScreenshotThread(screenshot_queue)
-        screenshot_worker.daemon = True
         screenshot_worker.start()
         screenshot_threads.append(screenshot_worker)
 

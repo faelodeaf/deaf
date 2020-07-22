@@ -6,6 +6,8 @@ import threading
 from pathlib import Path
 from typing import List
 
+from colorama import Fore, Style
+
 from modules.rtsp import AuthMethod, RTSPClient
 
 logger = logging.getLogger("debugger")
@@ -116,9 +118,13 @@ def load_txt(path: str, name: str) -> List[str]:
                 target for line in get_lines(path) for target in parse_input_line(line)
             ]
     except FileNotFoundError as e:
-        logging.error(f"Couldn't read {name} file at {path}: {str(e)}")
+        logging.error(
+            f"{Fore.RED}Couldn't read {name} file at {path}: {repr(e)}{Style.RESET_ALL}"
+        )
         sys.exit()
-    logging.info(f"Loaded {len(result)} {name} from {path}")
+    logging.info(
+        f"{Fore.YELLOW}Loaded {len(result)} {name} from {path}{Style.RESET_ALL}"
+    )
     return result
 
 

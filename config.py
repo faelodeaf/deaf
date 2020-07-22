@@ -2,9 +2,10 @@ import time
 from pathlib import Path
 from typing import List
 
-# Less SCREENSHOT_THREADS leads to more successful screenshots.
+# Less SCREENSHOT_THREADS leads to more successful screenshots:
+# when there's too much threads PyAV will throw MemoryError and
+# wouldn't connect to target.
 # On authors machine 20-30 is most effective number.
-# It's better to not increase SCREENSHOT_THREADS, it's CPU-heavy.
 CHECK_THREADS: int = 500
 BRUTE_THREADS: int = 200
 SCREENSHOT_THREADS: int = 20

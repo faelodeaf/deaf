@@ -1,9 +1,11 @@
 import logging
+from logging import log
 import socket
 import sys
 import typing
 
 import av
+from colorama import Fore, Style
 
 from modules import utils
 from modules.rtsp import AuthMethod, RTSPClient, Status
@@ -20,15 +22,15 @@ def try_to(func, target, *args):
         func(*args)
         return True
     except (socket.timeout, TimeoutError) as e:
-        logger.debug(f"Skipping {target.ip}: {str(e)}")
+        logger.debug(f"Skipping {target.ip}: {repr(e)}")
         target.status = Status.TIMEOUT
         return False
     except ConnectionResetError as e:
-        logger.debug(f"Skipping {target.ip}: {str(e)}")
+        logger.debug(f"Skipping {target.ip}: {repr(e)}")
         target.status = Status.BLOCKED
         return False
     except Exception as e:
-        logger.debug(f"{func.__name__} failed for {target.ip}:{target.port}: {str(e)}")
+        logger.debug(f"{func.__name__} failed for {target.ip}:{target.port}: {repr(e)}")
         return False
 
 
@@ -76,7 +78,7 @@ def route_attack(target: RTSPClient, route) -> bool:
     try:
         code = utils.detect_code(str(target.data))
     except Exception as e:
-        logger.debug(f"get_code failed for {attack_url}: {str(e)}, {target.data}")
+        logger.debug(f"get_code failed for {attack_url}: {repr(e)}, {target.data}")
         target.socket.close()
         return False
 
@@ -130,7 +132,7 @@ def credentials_attack(target: RTSPClient, cred):
     try:
         code = utils.detect_code(str(target.data))
     except Exception as e:
-        logger.debug(f"get_code failed for {attack_url}: {str(e)}")
+        logger.debug(f"get_code failed for {attack_url}: {repr(e)}")
         return False
 
     logger.debug(f"DESCRIBE {attack_url} RTSP/1.0 > {code}")
@@ -139,7 +141,7 @@ def credentials_attack(target: RTSPClient, cred):
     # If it's a 404, it means that the route is incorrect but the credentials might be okay.
     # If it's a 200, the stream is accessed successfully.
     if code == 200:
-        logging.info(f"Working stream at {attack_url}")
+        logging.info(f"{Style.DIM}Working stream at {attack_url}{Style.RESET_ALL}")
         logger.debug(
             f"Working stream at {attack_url} with {target.auth_method.name} auth"
         )
@@ -155,13 +157,7 @@ def credentials_attack(target: RTSPClient, cred):
 
 
 def get_screenshot(target: RTSPClient, tries=0) -> str:
-    username: str
-    password: str
-    file_name: str
-    username, password = target.credentials.split(":")
-    file_name = utils.escape_chars(
-        f"{username}_{password}_{target.ip}_{target.port}_{target.route.lstrip('/')}.jpg"
-    )
+    file_name = utils.escape_chars(f"{str(target).lstrip('rtsp://')}.jpg")
     file_path = config.PICS_FOLDER / file_name
 
     try:
@@ -193,9 +189,25 @@ def get_screenshot(target: RTSPClient, tries=0) -> str:
             for frame in video.decode(video=0):
                 frame.to_image().save(file_path)
                 break
+    except (MemoryError, PermissionError, av.InvalidDataError) as e:
+        # Those errors occurs when there's too much SCREENSHOT_THREADS.
+        logger.debug(f"Missed screenshot of {str(target)}: {repr(e)}")
+        # Try one more time in hope for luck.
+        if tries == 0:
+            logging.info(
+                f"{Fore.YELLOW}Retry to get a screenshot of the {str(target)}{Style.RESET_ALL}"
+            )
+            return get_screenshot(target, 1)
+        else:
+            logging.error(
+                f"{Fore.RED}Missed screenshot of {str(target)}: if you see this message a lot - consider lowering SCREENSHOT_THREADS ({config.SCREENSHOT_THREADS})"
+            )
+            return ""
     except Exception as e:
         logger.debug(f"get_screenshot failed with {str(target)}: {repr(e)}")
         return ""
 
-    logging.info(f"Captured screenshot for {str(target)}")
+    logging.info(
+        f"{Style.BRIGHT}Captured screenshot for {str(target)}{Style.RESET_ALL}"
+    )
     return file_path

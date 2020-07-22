@@ -135,7 +135,11 @@ class RTSPClient:
         ip: str, port: Union[str, int] = 554, credentials: str = ":", route: str = "/"
     ):
         """Return URL in RTSP format."""
-        return f"rtsp://{credentials}@{ip}:{port}{route}"
+        if credentials != ":":
+            ip_prefix = f"{credentials}@"
+        else:
+            ip_prefix = ""
+        return f"rtsp://{ip_prefix}{ip}:{port}{route}"
 
     def __str__(self) -> str:
         return self.get_rtsp_url(self.ip, self.port, self.credentials, self.route)

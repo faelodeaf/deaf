@@ -154,7 +154,7 @@ def credentials_attack(target: RTSPClient, cred):
         return False
 
 
-def get_screenshot(target: RTSPClient) -> str:
+def get_screenshot(target: RTSPClient, tries=0) -> str:
     username: str
     password: str
     file_name: str
@@ -174,6 +174,21 @@ def get_screenshot(target: RTSPClient) -> str:
             },
             timeout=60.0,
         ) as video:
+            if (
+                video.streams.video[0].profile is None
+                and video.streams.video[0].start_time is None
+                and video.streams.video[0].codec_context.format is None
+            ):
+                # There's a high possibility that this video stream is broken
+                # or something else, so we try again just to make sure
+                if tries == 0:
+                    video.close()
+                    return get_screenshot(target, 1)
+                else:
+                    logger.debug(
+                        f"Broken video stream or unknown issues with {str(target)}"
+                    )
+                    return ""
             video.streams.video[0].thread_type = "AUTO"
             for frame in video.decode(video=0):
                 frame.to_image().save(file_path)

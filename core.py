@@ -15,7 +15,9 @@ debugger = logging.getLogger("debugger")
 debugger.setLevel(logging.DEBUG)
 file_handler = logging.FileHandler(config.DEBUG_LOG_FILE, "w")
 file_handler.setFormatter(
-    logging.Formatter("[%(asctime)s] [%(levelname)s] [%(funcName)s] %(message)s")
+    logging.Formatter(
+        "[%(asctime)s] [%(levelname)s] [%(threadName)s] [%(funcName)s] %(message)s"
+    )
 )
 debugger.addHandler(file_handler)
 debugger.propagate = False
@@ -79,11 +81,22 @@ if __name__ == "__main__":
     # Wait until all items in the queue have been gotten and processed.
     # Then put sentinel value in queue to end all threads.
     check_queue.join()
+    debugger.debug("check_queue finished")
     [check_queue.put(None) for _ in range(config.CHECK_THREADS)]
+    [t.join() for t in check_threads]
+    debugger.debug("check_threads finished")
+
     brute_queue.join()
+    debugger.debug("brute_queue finished")
     [brute_queue.put(None) for _ in range(config.BRUTE_THREADS)]
+    [t.join() for t in brute_threads]
+    debugger.debug("brute_threads finished")
+
     screenshot_queue.join()
+    debugger.debug("screenshot_queue finished")
     [screenshot_queue.put(None) for _ in range(config.SCREENSHOT_THREADS)]
+    [t.join() for t in screenshot_threads]
+    debugger.debug("screenshot_threads finished")
 
     print()
     file_handler.close()

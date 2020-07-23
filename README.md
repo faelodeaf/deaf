@@ -4,6 +4,8 @@
    <a href="https://asciinema.org/a/348924?autoplay=1" target="_blank"><img src="https://asciinema.org/a/348924.svg" /></a>
 </p>
 
+> Inspired by [Cameradar](https://github.com/Ullaakut/cameradar)
+
 
 ## Features
 

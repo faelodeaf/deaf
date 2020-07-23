@@ -1,3 +1,4 @@
+from modules import utils
 import threading
 from queue import Queue
 
@@ -19,10 +20,12 @@ class CheckerThread(threading.Thread):
     def run(self) -> None:
         while True:
             target: RTSPClient = self.check_queue.get()
+            if target is None:
+                break
 
             result = attack_route(target)
             if result:
+                utils.detect_auth_method(result)
                 self.brute_queue.put(result)
-            target._socket.close()
 
             self.check_queue.task_done()

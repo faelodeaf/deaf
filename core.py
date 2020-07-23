@@ -1,9 +1,7 @@
 import logging
-from logging import Formatter
-import time
-from pathlib import Path
 from queue import Queue
 
+import av
 from colorama import init, Fore, Style
 
 import config
@@ -17,7 +15,9 @@ debugger = logging.getLogger("debugger")
 debugger.setLevel(logging.DEBUG)
 file_handler = logging.FileHandler(config.DEBUG_LOG_FILE, "w")
 file_handler.setFormatter(
-    logging.Formatter("[%(asctime)s] [%(levelname)s] [%(funcName)s] %(message)s")
+    logging.Formatter(
+        "[%(asctime)s] [%(levelname)s] [%(threadName)s] [%(funcName)s] %(message)s"
+    )
 )
 debugger.addHandler(file_handler)
 debugger.propagate = False
@@ -31,6 +31,9 @@ av_logger = logging.getLogger("av")
 av_logger.setLevel(logging.DEBUG)
 av_logger.addHandler(file_handler)
 av_logger.propagate = False
+# This disables ValueError from av module printing to console, but this also
+# means we won't get any logs from av, if they aren't FATAL or PANIC level.
+av.logging.set_level(av.logging.FATAL)
 
 
 if __name__ == "__main__":
@@ -55,21 +58,18 @@ if __name__ == "__main__":
     debugger.debug(f"Starting CheckerThreads")
     for _ in range(config.CHECK_THREADS):
         check_worker = CheckerThread(check_queue, brute_queue)
-        check_worker.daemon = True
         check_worker.start()
         check_threads.append(check_worker)
 
     debugger.debug(f"Starting BruteThreads")
     for _ in range(config.BRUTE_THREADS):
         brute_worker = BruteThread(brute_queue, screenshot_queue)
-        brute_worker.daemon = True
         brute_worker.start()
         brute_threads.append(brute_worker)
 
     debugger.debug(f"Starting ScreenshotThreads")
     for _ in range(config.SCREENSHOT_THREADS):
         screenshot_worker = ScreenshotThread(screenshot_queue)
-        screenshot_worker.daemon = True
         screenshot_worker.start()
         screenshot_threads.append(screenshot_worker)
 
@@ -78,12 +78,25 @@ if __name__ == "__main__":
     for ip in config.TARGETS:
         check_queue.put(RTSPClient(ip))
 
+    # Wait until all items in the queue have been gotten and processed.
+    # Then put sentinel value in queue to end all threads.
     check_queue.join()
-    [t.join for t in check_threads]
+    debugger.debug("check_queue finished")
+    [check_queue.put(None) for _ in range(config.CHECK_THREADS)]
+    [t.join() for t in check_threads]
+    debugger.debug("check_threads finished")
+
     brute_queue.join()
-    [t.join for t in brute_threads]
+    debugger.debug("brute_queue finished")
+    [brute_queue.put(None) for _ in range(config.BRUTE_THREADS)]
+    [t.join() for t in brute_threads]
+    debugger.debug("brute_threads finished")
+
     screenshot_queue.join()
-    [t.join for t in screenshot_threads]
+    debugger.debug("screenshot_queue finished")
+    [screenshot_queue.put(None) for _ in range(config.SCREENSHOT_THREADS)]
+    [t.join() for t in screenshot_threads]
+    debugger.debug("screenshot_threads finished")
 
     print()
     file_handler.close()

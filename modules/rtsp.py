@@ -22,6 +22,19 @@ class Status(Enum):
 
 
 class RTSPClient:
+    __slots__ = (
+        "ip",
+        "port",
+        "credentials",
+        "routes",
+        "timeout",
+        "status",
+        "auth_method",
+        "realm",
+        "nonce",
+        "_local",
+    )
+
     def __init__(
         self, ip: str, port: int = 554, credentials: str = ":", timeout: int = 2
     ) -> None:

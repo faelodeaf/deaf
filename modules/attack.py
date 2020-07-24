@@ -200,7 +200,7 @@ def get_screenshot(target: RTSPClient, tries=0) -> str:
             return get_screenshot(target, 1)
         else:
             logging.error(
-                f"{Fore.RED}Missed screenshot of {str(target)}: if you see this message a lot - consider lowering SCREENSHOT_THREADS ({config.SCREENSHOT_THREADS})"
+                f"{Fore.RED}Missed screenshot of {str(target)}: if you see this message a lot - consider lowering SCREENSHOT_THREADS ({config.SCREENSHOT_THREADS}){Style.RESET_ALL}"
             )
             return ""
     except Exception as e:

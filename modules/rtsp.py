@@ -1,10 +1,10 @@
-import base64
-import hashlib
 import socket
 import threading
 from enum import Enum
 from ipaddress import ip_address
 from typing import List, Union
+
+from modules.packet import describe
 
 
 class AuthMethod(Enum):
@@ -93,50 +93,20 @@ class RTSPClient:
 
     def connect(self):
         self.socket.settimeout(self.timeout)
+        self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.socket.connect((self.ip, self.port))
 
-    def create_packet(self, path="", credentials=""):
+    def create_packet(self, path=None, credentials=None):
         """Create describe packet."""
-
-        def _gen_auth_str(cred, option):
-            if self.auth_method is AuthMethod.BASIC:
-                encoded_cred = base64.b64encode(cred.encode("ascii"))
-                auth_str = f"Authorization: Basic {str(encoded_cred, 'utf-8')}"
-            else:
-                username, password = cred.split(":")
-                uri = f"rtsp://{self.ip}:{self.port}{path}"
-                HA1 = hashlib.md5(
-                    f"{username}:{self.realm}:{password}".encode("ascii")
-                ).hexdigest()
-                HA2 = hashlib.md5(f"{option}:{uri}".encode("ascii")).hexdigest()
-                response = hashlib.md5(
-                    f"{HA1}:{self.nonce}:{HA2}".encode("ascii")
-                ).hexdigest()
-                auth_str = f"Authorization: Digest "
-                auth_str += f'username="{username}", '
-                auth_str += f'realm="{self.realm}", '
-                auth_str += f'nonce="{self.nonce}", '
-                auth_str += f'uri="{uri}", '
-                auth_str += f'response="{response}"'
-            return auth_str
-
-        def _gen_describe(path, cred):
-            packet = f"DESCRIBE rtsp://{self.ip}:{self.port}{path} RTSP/1.0\r\n"
-            packet += "CSeq: 2\r\n"
-            if cred and not self.auth_method is AuthMethod.NONE:
-                auth_str = _gen_auth_str(cred, "DESCRIBE")
-                packet += f"{auth_str}\r\n"
-            packet += "User-Agent: Mozilla/5.0\r\n"
-            packet += "Accept: application/sdp\r\n"
-            packet += "\r\n"
-            return packet
 
         if not path:
             path = self.route
         if not credentials:
             credentials = self.credentials
 
-        self._local.packet = _gen_describe(path, credentials)
+        self._local.packet = describe(
+            self.ip, self.port, path, credentials, self.realm, self.nonce
+        )
 
     def send_packet(self):
         """Send packet to the open connection and receive data back."""

@@ -2,13 +2,20 @@ import time
 from pathlib import Path
 from typing import List
 
-# Less SCREENSHOT_THREADS leads to more successful screenshots:
-# when there's too much threads PyAV will throw MemoryError and
-# wouldn't connect to target.
-# On authors machine 20-30 is most effective number.
+
+# The number of threads that brute-force the routes.
 CHECK_THREADS: int = 500
+
+# The number of threads that brute-force the credentials.
 BRUTE_THREADS: int = 200
+
+# The number of threads that screenshot the streams.
+# Note: less SCREENSHOT_THREADS leads to more successful
+# screenshots: when there's too much threads PyAV will
+# throw errors and wouldn't connect to target.
+# On author's machine 20-30 is most effective number.
 SCREENSHOT_THREADS: int = 20
+
 
 PORT: int = 554
 SOCKET_TIMEOUT: int = 2

@@ -1,5 +1,7 @@
 import logging
+import threading
 from queue import Queue
+from typing import List
 
 import av
 from colorama import init, Fore, Style
@@ -36,6 +38,23 @@ av_logger.propagate = False
 av.logging.set_level(av.logging.FATAL)
 
 
+def start_threads(number, target, *args):
+    debugger.debug(f"Starting {number} threads of {target.__module__}.{target.__name__}")
+    threads = []
+    for _ in range(number):
+        thread = threading.Thread(target=target, args=args)
+        threads.append(thread)
+        thread.start()
+    return threads
+
+
+def wait_for(queue: Queue, threads: List[threading.Thread]):
+    """Waits for queue and then threads to finish."""
+    queue.join()
+    [queue.put(None) for _ in range(len(threads))]
+    [t.join() for t in threads]
+
+
 if __name__ == "__main__":
     init()
 
@@ -51,52 +70,27 @@ if __name__ == "__main__":
     brute_queue = Queue()
     screenshot_queue = Queue()
 
-    check_threads = []
-    brute_threads = []
-    screenshot_threads = []
-
-    debugger.debug(f"Starting CheckerThreads")
-    for _ in range(config.CHECK_THREADS):
-        check_worker = CheckerThread(check_queue, brute_queue)
-        check_worker.start()
-        check_threads.append(check_worker)
-
-    debugger.debug(f"Starting BruteThreads")
-    for _ in range(config.BRUTE_THREADS):
-        brute_worker = BruteThread(brute_queue, screenshot_queue)
-        brute_worker.start()
-        brute_threads.append(brute_worker)
-
-    debugger.debug(f"Starting ScreenshotThreads")
-    for _ in range(config.SCREENSHOT_THREADS):
-        screenshot_worker = ScreenshotThread(screenshot_queue)
-        screenshot_worker.start()
-        screenshot_threads.append(screenshot_worker)
+    check_threads = start_threads(
+        config.CHECK_THREADS, worker.brute_routes, check_queue, brute_queue
+    )
+    brute_threads = start_threads(
+        config.BRUTE_THREADS, worker.brute_credentials, brute_queue, screenshot_queue
+    )
+    screenshot_threads = start_threads(
+        config.SCREENSHOT_THREADS, worker.screenshot_targets, screenshot_queue
+    )
 
     logging.info(f"{Fore.GREEN}Starting...\n{Style.RESET_ALL}")
 
     for ip in config.TARGETS:
         check_queue.put(RTSPClient(ip))
 
-    # Wait until all items in the queue have been gotten and processed.
-    # Then put sentinel value in queue to end all threads.
-    check_queue.join()
-    debugger.debug("check_queue finished")
-    [check_queue.put(None) for _ in range(config.CHECK_THREADS)]
-    [t.join() for t in check_threads]
-    debugger.debug("check_threads finished")
-
-    brute_queue.join()
-    debugger.debug("brute_queue finished")
-    [brute_queue.put(None) for _ in range(config.BRUTE_THREADS)]
-    [t.join() for t in brute_threads]
-    debugger.debug("brute_threads finished")
-
-    screenshot_queue.join()
-    debugger.debug("screenshot_queue finished")
-    [screenshot_queue.put(None) for _ in range(config.SCREENSHOT_THREADS)]
-    [t.join() for t in screenshot_threads]
-    debugger.debug("screenshot_threads finished")
+    wait_for(check_queue, check_threads)
+    debugger.debug("Check queue and threads finished")
+    wait_for(brute_queue, brute_threads)
+    debugger.debug("Brute queue and threads finished")
+    wait_for(screenshot_queue, screenshot_threads)
+    debugger.debug("Screenshot queue and threads finished")
 
     print()
     file_handler.close()

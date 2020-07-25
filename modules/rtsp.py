@@ -93,7 +93,6 @@ class RTSPClient:
 
     def connect(self):
         self.socket.settimeout(self.timeout)
-        self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.socket.connect((self.ip, self.port))
 
     def create_packet(self, path=None, credentials=None):

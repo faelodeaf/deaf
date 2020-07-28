@@ -1,10 +1,13 @@
 import socket
-import threading
 from enum import Enum
 from ipaddress import ip_address
+from time import sleep
 from typing import List, Union
 
+from modules import utils
 from modules.packet import describe
+
+MAX_RETRIES = 2
 
 
 class AuthMethod(Enum):
@@ -16,9 +19,17 @@ class AuthMethod(Enum):
 class Status(Enum):
     CONNECTED = 0
     TIMEOUT = 1
-    BLOCKED = 2
     UNIDENTIFIED = 100
     NONE = -1
+
+    @classmethod
+    def from_exception(cls, exception: Exception):
+        if type(exception) is type(socket.timeout()) or type(exception) is type(
+            TimeoutError()
+        ):
+            return cls.TIMEOUT
+        else:
+            return cls.UNIDENTIFIED
 
 
 class RTSPClient:
@@ -27,12 +38,16 @@ class RTSPClient:
         "port",
         "credentials",
         "routes",
-        "timeout",
         "status",
         "auth_method",
+        "last_error",
         "realm",
         "nonce",
-        "_local",
+        "socket",
+        "timeout",
+        "packet",
+        "cseq",
+        "data",
     )
 
     def __init__(
@@ -50,13 +65,16 @@ class RTSPClient:
         self.port = port
         self.credentials = credentials
         self.routes: List[str] = []
-        self.timeout = timeout
         self.status: Status = Status.NONE
         self.auth_method: AuthMethod = AuthMethod.NONE
+        self.last_error: Exception = None
         self.realm: str = None
         self.nonce: str = None
-
-        self._local = threading.local()
+        self.socket = None
+        self.timeout = timeout
+        self.packet = None
+        self.cseq = 0
+        self.data = None
 
     @property
     def route(self):
@@ -66,51 +84,76 @@ class RTSPClient:
             return ""
 
     @property
-    def data(self):
-        _data = getattr(self._local, "data", "")
-        return _data
-
-    @data.setter
-    def data(self, value):
-        self._local.data = value
-
-    @data.deleter
-    def data(self):
-        del self._local.data
+    def is_connected(self):
+        return self.status is Status.CONNECTED
 
     @property
-    def socket(self):
-        _socket = getattr(self._local, "socket", None)
-        return _socket
-
-    @socket.setter
-    def socket(self, value):
-        self._local.socket = value
-
-    @socket.deleter
-    def socket(self):
-        del self._local.socket
+    def is_authorized(self):
+        return "200" in self.data
 
     def connect(self):
-        self.socket.settimeout(self.timeout)
-        self.socket.connect((self.ip, self.port))
+        if self.is_connected:
+            return True
 
-    def create_packet(self, path=None, credentials=None):
-        """Create describe packet."""
+        self.packet = None
+        self.cseq = 0
+        self.data = None
+        retry = 0
+        while retry < MAX_RETRIES and not self.is_connected:
+            try:
+                self.socket = socket.create_connection(
+                    (self.ip, self.port), self.timeout
+                )
+            except Exception as e:
+                self.status = Status.from_exception(e)
+                self.last_error = e
 
-        if not path:
-            path = self.route
-        if not credentials:
+                retry += 1
+                sleep(1.5)
+            else:
+                self.status = Status.CONNECTED
+                self.last_error = None
+
+                return True
+
+        return False
+
+    def authorize(self, route=None, credentials=None):
+        if not self.is_connected:
+            return False
+
+        if route is None:
+            route = self.route
+        if credentials is None:
             credentials = self.credentials
 
-        self._local.packet = describe(
-            self.ip, self.port, path, credentials, self.realm, self.nonce
+        self.cseq += 1
+        self.packet = describe(
+            self.ip, self.port, route, self.cseq, credentials, self.realm, self.nonce
         )
+        try:
+            self.socket.sendall(self.packet.encode())
+            self.data = self.socket.recv(1024).decode()
+        except Exception as e:
+            self.status = Status.from_exception(e)
+            self.last_error = e
+            self.socket.close()
 
-    def send_packet(self):
-        """Send packet to the open connection and receive data back."""
-        self.socket.sendall(self._local.packet.encode())
-        self.data = repr(self.socket.recv(1024))
+            return False
+
+        if not self.data:
+            return False
+
+        if "Basic" in self.data:
+            self.auth_method = AuthMethod.BASIC
+        elif "Digest" in self.data:
+            self.auth_method = AuthMethod.DIGEST
+            self.realm = utils.find("realm", self.data)
+            self.nonce = utils.find("nonce", self.data)
+        else:
+            self.auth_method = AuthMethod.NONE
+
+        return True
 
     @staticmethod
     def get_rtsp_url(

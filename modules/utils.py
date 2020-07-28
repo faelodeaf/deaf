@@ -2,17 +2,19 @@ import ipaddress
 import logging
 import re
 import sys
-import threading
 from pathlib import Path
 from typing import List
 
 from colorama import Fore, Style
 
-from modules.rtsp import AuthMethod, RTSPClient
+from modules.rtsp import RTSPClient
 
 logger = logging.getLogger("debugger")
 
-global_lock = threading.Lock()
+reg = {
+    "realm": re.compile(r'realm="(.*?)"'),
+    "nonce": re.compile(r'nonce="(.*?)"'),
+}
 
 
 def generate_html(path: Path):
@@ -52,8 +54,10 @@ def create_file(path: Path):
     path.open("w", encoding="utf-8")
 
 
-def append_result(result_file: Path, html_file: Path, pic_file: Path, rtsp: RTSPClient):
-    with global_lock:
+def append_result(
+    lock, result_file: Path, html_file: Path, pic_file: Path, rtsp: RTSPClient
+):
+    with lock:
         # Append to .txt result file
         with result_file.open("a") as f:
             f.write(f"{str(rtsp)}\n")
@@ -78,32 +82,13 @@ def escape_chars(s: str):
     return re.sub(r"[^\w\-_. ]", "_", s)
 
 
-def detect_code(data: str):
-    return int(data[11:14])
-
-
-def detect_auth_method(target):
-    def _find_var(data, var):
-        start = data.find(var)
-        begin = data.find('"', start) + 1
-        end = data.find('"', begin)
-        return data[begin:end]
-
-    data = str(target.data)
-
-    if "Basic" in data:
-        auth_method = "basic"
-        target.auth_method = AuthMethod.BASIC
-    elif "Digest" in data:
-        auth_method = "digest"
-        target.auth_method = AuthMethod.DIGEST
-        target.realm = _find_var(data, "realm")
-        target.nonce = _find_var(data, "nonce")
+def find(var: str, response: str):
+    """Searches for `var` in `response`."""
+    match = reg[var].search(response)
+    if match:
+        return match.group(1)
     else:
-        auth_method = "no"
-        target.auth_method = AuthMethod.NONE
-
-    logger.debug(f"Stream {str(target)} uses {auth_method} authentication method\n")
+        return None
 
 
 def load_txt(path: str, name: str) -> List[str]:
@@ -137,7 +122,9 @@ def get_lines(path: str) -> List[str]:
 def parse_input_line(input_line: str) -> List[str]:
     """
     Parse input line and return list with IPs.
+
     Supported inputs:
+
         1) 1.2.3.4
         2) 192.168.0.0/24
         3) 1.2.3.4 - 5.6.7.8

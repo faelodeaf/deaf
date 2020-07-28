@@ -39,7 +39,9 @@ av.logging.set_level(av.logging.FATAL)
 
 
 def start_threads(number, target, *args):
-    debugger.debug(f"Starting {number} threads of {target.__module__}.{target.__name__}")
+    debugger.debug(
+        f"Starting {number} threads of {target.__module__}.{target.__name__}"
+    )
     threads = []
     for _ in range(number):
         thread = threading.Thread(target=target, args=args)
@@ -83,7 +85,7 @@ if __name__ == "__main__":
     logging.info(f"{Fore.GREEN}Starting...\n{Style.RESET_ALL}")
 
     for ip in config.TARGETS:
-        check_queue.put(RTSPClient(ip))
+        check_queue.put(RTSPClient(ip, port=config.PORT, timeout=config.SOCKET_TIMEOUT))
 
     wait_for(check_queue, check_threads)
     debugger.debug("Check queue and threads finished")

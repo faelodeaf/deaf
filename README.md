@@ -1,7 +1,7 @@
 # RTSPBrute
 
 <p align="center">
-   <a href="https://asciinema.org/a/348924?autoplay=1" target="_blank"><img src="https://asciinema.org/a/348924.svg" /></a>
+   <a href="https://asciinema.org/a/351052?autoplay=1" target="_blank"><img src="https://asciinema.org/a/351052.svg" /></a>
 </p>
 
 > Inspired by [Cameradar](https://github.com/Ullaakut/cameradar)

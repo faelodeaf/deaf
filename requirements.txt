@@ -1,3 +1,3 @@
-av
 colorama
 Pillow
+rich

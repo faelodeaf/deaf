@@ -2,26 +2,28 @@ import logging
 import sys
 
 import av
-from colorama import Fore, Style
 
+import config
 from modules import utils
+from modules.cli.output import console
 from modules.rtsp import RTSPClient, Status
 
 sys.path.append("..")
-import config
 
 dummy_route = "/0x8b6c42"
 logger = logging.getLogger("debugger")
 
 
-def attack(target: RTSPClient, route=None, credentials=None):
+def attack(target: RTSPClient, port=None, route=None, credentials=None):
+    if port is None:
+        port = target.port
     if route is None:
         route = target.route
     if credentials is None:
         credentials = target.credentials
 
     # Create socket connection.
-    ok = target.connect()
+    ok = target.connect(port)
     if not ok:
         if target.status is Status.UNIDENTIFIED:
             logger.debug(
@@ -31,9 +33,9 @@ def attack(target: RTSPClient, route=None, credentials=None):
             logger.debug(f"Failed to connect {str(target)}: {target.status.name}")
         return False
 
-    attack_url = RTSPClient.get_rtsp_url(target.ip, target.port, credentials, route)
+    attack_url = RTSPClient.get_rtsp_url(target.ip, port, credentials, route)
     # Try to authorize: create describe packet and send it.
-    ok = target.authorize(route, credentials)
+    ok = target.authorize(port, route, credentials)
     request = "\n\t".join(target.packet.split("\r\n")).rstrip()
     if target.data:
         response = "\n\t".join(target.data.split("\r\n")).rstrip()
@@ -55,24 +57,27 @@ def attack_route(target: RTSPClient):
     # If the stream responds positively to the dummy route, it means
     # it doesn't require (or respect the RFC) a route and the attack
     # can be skipped.
-    ok = attack(target, route=dummy_route)
-    if ok and any(code in target.data for code in ok_codes):
-        target.routes.append("/")
-        return target
-
-    # Otherwise, bruteforce the routes.
-    for route in config.ROUTES:
-        ok = attack(target, route=route)
-        if not ok:
-            return False
-        if any(code in target.data for code in ok_codes):
-            target.routes.append(route)
+    for port in config.PORTS:
+        ok = attack(target, port=port, route=dummy_route)
+        if ok and any(code in target.data for code in ok_codes):
+            target.port = port
+            target.routes.append("/")
             return target
+
+        # Otherwise, bruteforce the routes.
+        for route in config.ROUTES:
+            ok = attack(target, port=port, route=route)
+            if not ok:
+                break
+            if any(code in target.data for code in ok_codes):
+                target.port = port
+                target.routes.append(route)
+                return target
 
 
 def attack_credentials(target: RTSPClient):
     def _log_working_stream():
-        logging.info(f"{Style.DIM}Working stream at {str(target)}{Style.RESET_ALL}")
+        console.print("Working stream at", target)
         logger.debug(
             f"Working stream at {str(target)} with {target.auth_method.name} auth"
         )
@@ -103,7 +108,7 @@ def attack_credentials(target: RTSPClient):
             return target
 
 
-def get_screenshot(target: RTSPClient, tries=0) -> str:
+def get_screenshot(target: RTSPClient, tries=0):
     file_name = utils.escape_chars(f"{str(target).lstrip('rtsp://')}.jpg")
     file_path = config.PICS_FOLDER / file_name
 
@@ -132,7 +137,7 @@ def get_screenshot(target: RTSPClient, tries=0) -> str:
                     logger.debug(
                         f"Broken video stream or unknown issues with {str(target)}"
                     )
-                    return ""
+                    return
             video.streams.video[0].thread_type = "AUTO"
             for frame in video.decode(video=0):
                 frame.to_image().save(file_path)
@@ -143,21 +148,17 @@ def get_screenshot(target: RTSPClient, tries=0) -> str:
         # Try one more time in hope for luck.
         if tries == 2:
             tries += 1
-            logging.info(
-                f"{Fore.YELLOW}Retry to get a screenshot of the {str(target)}{Style.RESET_ALL}"
-            )
+            console.print("[yellow]Retry to get a screenshot of the", target)
             return get_screenshot(target, tries)
         else:
-            logging.warning(
-                f"{Fore.RED}Missed screenshot of {str(target)}: if you see this message a lot - consider lowering SCREENSHOT_THREADS ({config.SCREENSHOT_THREADS}){Style.RESET_ALL}"
+            console.print(
+                f"[italic red]Missed screenshot of [underline]{str(target)}[/underline] - if you see this message a lot, consider reducing the number of screenshot threads",
             )
-            return ""
+            return
     except Exception as e:
         logger.debug(f"get_screenshot failed with {str(target)}: {repr(e)}")
-        return ""
+        return
 
-    logging.info(
-        f"{Style.BRIGHT}Captured screenshot for {str(target)}{Style.RESET_ALL}"
-    )
+    console.print("[bold]Captured screenshot for", target)
     logger.debug(f"Captured screenshot for {str(target)}")
     return file_path

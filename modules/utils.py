@@ -5,8 +5,7 @@ import sys
 from pathlib import Path
 from typing import List
 
-from colorama import Fore, Style
-
+from modules.cli.output import console
 from modules.rtsp import RTSPClient
 
 logger = logging.getLogger("debugger")
@@ -101,13 +100,9 @@ def load_txt(path: str, name: str) -> List[str]:
                 target for line in get_lines(path) for target in parse_input_line(line)
             ]
     except FileNotFoundError as e:
-        logging.error(
-            f"{Fore.RED}Couldn't read {name} file at {path}: {repr(e)}{Style.RESET_ALL}"
-        )
+        console.print(f"[red]Couldn't read {name} file at {path}: {repr(e)}")
         sys.exit()
-    logging.info(
-        f"{Fore.YELLOW}Loaded {len(result)} {name} from {path}{Style.RESET_ALL}"
-    )
+    console.print(f"[yellow]Loaded {len(result)} {name} from {path}")
     return result
 
 

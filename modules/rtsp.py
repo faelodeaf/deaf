@@ -51,7 +51,7 @@ class RTSPClient:
     )
 
     def __init__(
-        self, ip: str, port: int = 554, credentials: str = ":", timeout: int = 2
+        self, ip: str, port: int = 554, timeout: int = 2, credentials: str = ":",
     ) -> None:
         try:
             ip_address(ip)
@@ -67,9 +67,9 @@ class RTSPClient:
         self.routes: List[str] = []
         self.status: Status = Status.NONE
         self.auth_method: AuthMethod = AuthMethod.NONE
-        self.last_error: Exception = None
-        self.realm: str = None
-        self.nonce: str = None
+        self.last_error: Union[Exception, None] = None
+        self.realm: Union[str, None] = None
+        self.nonce: Union[str, None] = None
         self.socket = None
         self.timeout = timeout
         self.packet = None
@@ -91,9 +91,12 @@ class RTSPClient:
     def is_authorized(self):
         return "200" in self.data
 
-    def connect(self):
+    def connect(self, port: int = None):
         if self.is_connected:
             return True
+
+        if port is None:
+            port = self.port
 
         self.packet = None
         self.cseq = 0
@@ -101,9 +104,7 @@ class RTSPClient:
         retry = 0
         while retry < MAX_RETRIES and not self.is_connected:
             try:
-                self.socket = socket.create_connection(
-                    (self.ip, self.port), self.timeout
-                )
+                self.socket = socket.create_connection((self.ip, port), self.timeout)
             except Exception as e:
                 self.status = Status.from_exception(e)
                 self.last_error = e
@@ -118,10 +119,12 @@ class RTSPClient:
 
         return False
 
-    def authorize(self, route=None, credentials=None):
+    def authorize(self, port=None, route=None, credentials=None):
         if not self.is_connected:
             return False
 
+        if port is None:
+            port = self.port
         if route is None:
             route = self.route
         if credentials is None:
@@ -129,7 +132,7 @@ class RTSPClient:
 
         self.cseq += 1
         self.packet = describe(
-            self.ip, self.port, route, self.cseq, credentials, self.realm, self.nonce
+            self.ip, port, route, self.cseq, credentials, self.realm, self.nonce
         )
         try:
             self.socket.sendall(self.packet.encode())
@@ -168,3 +171,6 @@ class RTSPClient:
 
     def __str__(self) -> str:
         return self.get_rtsp_url(self.ip, self.port, self.credentials, self.route)
+
+    def __rich__(self) -> str:
+        return f"[underline cyan]{self.__str__()}[/underline cyan]"

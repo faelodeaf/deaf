@@ -1,13 +1,17 @@
-import threading
-from modules import utils
-from queue import Queue
 import sys
+from queue import Queue
+from threading import Lock
 
-sys.path.append("..")
 import config
 
-from .attack import attack_route, attack_credentials, get_screenshot
+from .attack import attack_credentials, attack_route, get_screenshot
 from .rtsp import RTSPClient
+from .utils import append_result
+
+sys.path.append("..")
+
+
+GLOBAL_LOCK = Lock()
 
 
 def brute_routes(input_queue: Queue, output_queue: Queue) -> None:
@@ -18,9 +22,10 @@ def brute_routes(input_queue: Queue, output_queue: Queue) -> None:
 
         result = attack_route(target)
         if result:
-            utils.detect_auth_method(result)
+            config.progress_bar.add_total(config.BRUTE_PROGRESS)
             output_queue.put(result)
 
+        config.progress_bar.update(config.CHECK_PROGRESS, advance=1)
         input_queue.task_done()
 
 
@@ -32,8 +37,10 @@ def brute_credentials(input_queue: Queue, output_queue: Queue) -> None:
 
         result = attack_credentials(target)
         if result:
+            config.progress_bar.add_total(config.SCREENSHOT_PROGRESS)
             output_queue.put(target)
 
+        config.progress_bar.update(config.BRUTE_PROGRESS, advance=1)
         input_queue.task_done()
 
 
@@ -45,6 +52,9 @@ def screenshot_targets(input_queue: Queue) -> None:
 
         image = get_screenshot(target)
         if image:
-            utils.append_result(config.RESULT_FILE, config.HTML_FILE, image, target)
+            append_result(
+                GLOBAL_LOCK, config.RESULT_FILE, config.HTML_FILE, image, target
+            )
 
+        config.progress_bar.update(config.SCREENSHOT_PROGRESS, advance=1)
         input_queue.task_done()

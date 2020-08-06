@@ -1,16 +1,17 @@
-import sys
 from queue import Queue
 from threading import Lock
 
-import config
+from rich.progress import TaskID
 
 from .attack import attack_credentials, attack_route, get_screenshot
+from .cli.output import ProgressBar
 from .rtsp import RTSPClient
 from .utils import append_result
 
-sys.path.append("..")
-
-
+PROGRESS_BAR: ProgressBar
+CHECK_PROGRESS: TaskID
+BRUTE_PROGRESS: TaskID
+SCREENSHOT_PROGRESS: TaskID
 GLOBAL_LOCK = Lock()
 
 
@@ -22,10 +23,10 @@ def brute_routes(input_queue: Queue, output_queue: Queue) -> None:
 
         result = attack_route(target)
         if result:
-            config.progress_bar.add_total(config.BRUTE_PROGRESS)
+            PROGRESS_BAR.add_total(BRUTE_PROGRESS)
             output_queue.put(result)
 
-        config.progress_bar.update(config.CHECK_PROGRESS, advance=1)
+        PROGRESS_BAR.update(CHECK_PROGRESS, advance=1)
         input_queue.task_done()
 
 
@@ -37,10 +38,10 @@ def brute_credentials(input_queue: Queue, output_queue: Queue) -> None:
 
         result = attack_credentials(target)
         if result:
-            config.progress_bar.add_total(config.SCREENSHOT_PROGRESS)
+            PROGRESS_BAR.add_total(SCREENSHOT_PROGRESS)
             output_queue.put(target)
 
-        config.progress_bar.update(config.BRUTE_PROGRESS, advance=1)
+        PROGRESS_BAR.update(BRUTE_PROGRESS, advance=1)
         input_queue.task_done()
 
 
@@ -52,9 +53,7 @@ def screenshot_targets(input_queue: Queue) -> None:
 
         image = get_screenshot(target)
         if image:
-            append_result(
-                GLOBAL_LOCK, config.RESULT_FILE, config.HTML_FILE, image, target
-            )
+            append_result(GLOBAL_LOCK, image, target)
 
-        config.progress_bar.update(config.SCREENSHOT_PROGRESS, advance=1)
+        PROGRESS_BAR.update(SCREENSHOT_PROGRESS, advance=1)
         input_queue.task_done()

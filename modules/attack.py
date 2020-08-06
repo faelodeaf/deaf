@@ -1,16 +1,19 @@
 import logging
-import sys
+from pathlib import Path
+from typing import List
 
 import av
 
-import config
 from modules import utils
 from modules.cli.output import console
 from modules.rtsp import RTSPClient, Status
 
-sys.path.append("..")
+ROUTES: List[str]
+CREDENTIALS: List[str]
+PORTS: List[int]
+DUMMY_ROUTE = "/0x8b6c42"
+PICS_FOLDER: Path
 
-dummy_route = "/0x8b6c42"
 logger = logging.getLogger()
 logger_is_enabled = logger.isEnabledFor(logging.DEBUG)
 
@@ -61,15 +64,15 @@ def attack_route(target: RTSPClient):
     # If the stream responds positively to the dummy route, it means
     # it doesn't require (or respect the RFC) a route and the attack
     # can be skipped.
-    for port in config.PORTS:
-        ok = attack(target, port=port, route=dummy_route)
+    for port in PORTS:
+        ok = attack(target, port=port, route=DUMMY_ROUTE)
         if ok and any(code in target.data for code in ok_codes):
             target.port = port
             target.routes.append("/")
             return target
 
         # Otherwise, bruteforce the routes.
-        for route in config.ROUTES:
+        for route in ROUTES:
             ok = attack(target, port=port, route=route)
             if not ok:
                 break
@@ -103,7 +106,7 @@ def attack_credentials(target: RTSPClient):
         return target
 
     # Otherwise, bruteforce the routes.
-    for cred in config.CREDENTIALS:
+    for cred in CREDENTIALS:
         ok = attack(target, credentials=cred)
         if not ok:
             return False
@@ -115,7 +118,7 @@ def attack_credentials(target: RTSPClient):
 
 def get_screenshot(target: RTSPClient, tries=0):
     file_name = utils.escape_chars(f"{str(target).lstrip('rtsp://')}.jpg")
-    file_path = config.PICS_FOLDER / file_name
+    file_path = PICS_FOLDER / file_name
 
     try:
         with av.open(

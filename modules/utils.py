@@ -8,8 +8,10 @@ from typing import List
 from modules.cli.output import console
 from modules.rtsp import RTSPClient
 
-logger = logging.getLogger()
+RESULT_FILE: Path
+HTML_FILE: Path
 
+logger = logging.getLogger()
 reg = {
     "realm": re.compile(r'realm="(.*?)"'),
     "nonce": re.compile(r'nonce="(.*?)"'),
@@ -55,18 +57,16 @@ def create_file(path: Path):
     path.open("w", encoding="utf-8")
 
 
-def append_result(
-    lock, result_file: Path, html_file: Path, pic_file: Path, rtsp: RTSPClient
-):
+def append_result(lock, pic_file: Path, rtsp: RTSPClient):
     with lock:
         # Append to .txt result file
-        with result_file.open("a") as f:
+        with RESULT_FILE.open("a") as f:
             f.write(f"{str(rtsp)}\n")
 
         # Insert to .html gallery file
         if not pic_file.exists():
             return
-        with html_file.open("a") as f:
+        with HTML_FILE.open("a") as f:
             f.write(
                 (
                     '<div class="responsive"><div class="gallery">\n'

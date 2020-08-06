@@ -1,16 +1,17 @@
 import collections
 import logging
 import threading
+import time
+from pathlib import Path
 from queue import Queue
 from typing import Callable, List
 
 import av
 from rich.panel import Panel
 
-import config
 from modules import attack, utils, worker
 from modules.cli.input import parser
-from modules.cli.output import console
+from modules.cli.output import console, progress_bar
 from modules.rtsp import RTSPClient
 
 
@@ -35,12 +36,22 @@ def wait_for(queue: Queue, threads: List[threading.Thread]):
 if __name__ == "__main__":
     args = parser.parse_args()
 
+    # Folders and files set up
+    start_datetime = time.strftime("%Y.%m.%d-%H.%M.%S")
+    REPORT_FOLDER = Path.cwd() / "reports" / start_datetime
+    attack.PICS_FOLDER = REPORT_FOLDER / "pics"
+    utils.RESULT_FILE = REPORT_FOLDER / "result.txt"
+    utils.HTML_FILE = REPORT_FOLDER / "index.html"
+    utils.create_folder(attack.PICS_FOLDER)
+    utils.create_file(utils.RESULT_FILE)
+    utils.generate_html(utils.HTML_FILE)
+
     # Logging module set up
     logger = logging.getLogger()
     attack.logger_is_enabled = args.debug
     if args.debug:
         logger.setLevel(logging.DEBUG)
-        file_handler = logging.FileHandler(config.DEBUG_LOG_FILE, "w")
+        file_handler = logging.FileHandler(REPORT_FOLDER / "debug.log")
         file_handler.setFormatter(
             logging.Formatter(
                 "[%(asctime)s] [%(levelname)s] [%(threadName)s] [%(funcName)s] %(message)s"
@@ -51,15 +62,19 @@ if __name__ == "__main__":
     # means we won't get any logs from av, if they aren't FATAL or PANIC level.
     av.logging.set_level(av.logging.FATAL)
 
+    # Progress output set up
+    worker.PROGRESS_BAR = progress_bar
+    worker.CHECK_PROGRESS = progress_bar.add_task("[bright_red]Checking...", total=0)
+    worker.BRUTE_PROGRESS = progress_bar.add_task("[bright_yellow]Bruting...", total=0)
+    worker.SCREENSHOT_PROGRESS = progress_bar.add_task(
+        "[bright_green]Screenshoting...", total=0
+    )
+
+    # Targets, routes, credentials and ports set up
     targets = collections.deque(set(utils.load_txt(args.targets, "targets")))
-    config.ROUTES = utils.load_txt(args.routes, "routes")
-    config.CREDENTIALS = utils.load_txt(args.credentials, "credentials")
-
-    config.PORTS = args.ports
-
-    utils.create_folder(config.PICS_FOLDER)
-    utils.create_file(config.RESULT_FILE)
-    utils.generate_html(config.HTML_FILE)
+    attack.ROUTES = utils.load_txt(args.routes, "routes")
+    attack.CREDENTIALS = utils.load_txt(args.credentials, "credentials")
+    attack.PORTS = args.ports
 
     check_queue = Queue()
     brute_queue = Queue()
@@ -77,8 +92,8 @@ if __name__ == "__main__":
 
     console.print("[green]Starting...\n")
 
-    config.progress_bar.update(config.CHECK_PROGRESS, total=len(targets))
-    config.progress_bar.start()
+    progress_bar.update(worker.CHECK_PROGRESS, total=len(targets))
+    progress_bar.start()
     while targets:
         check_queue.put(RTSPClient(ip=targets.popleft(), timeout=args.timeout))
 
@@ -92,17 +107,12 @@ if __name__ == "__main__":
     if args.debug:
         logger.debug("Screenshot queue and threads finished")
 
-    config.progress_bar.stop()
+    progress_bar.stop()
 
     print()
-    if args.debug:
-        file_handler.close()
-        config.DEBUG_LOG_FILE.rename(config.REPORT_FOLDER / config.DEBUG_LOG_FILE.name)
-    screenshots = list(config.PICS_FOLDER.iterdir())
+    screenshots = list(attack.PICS_FOLDER.iterdir())
     console.print(f"[green]Saved {len(screenshots)} screenshots")
     console.print(
-        Panel(
-            f"[bright_green]{str(config.REPORT_FOLDER)}", title="Report", expand=False
-        ),
+        Panel(f"[bright_green]{str(REPORT_FOLDER)}", title="Report", expand=False),
         justify="center",
     )

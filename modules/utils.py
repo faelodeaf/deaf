@@ -8,7 +8,7 @@ from typing import List
 from modules.cli.output import console
 from modules.rtsp import RTSPClient
 
-logger = logging.getLogger("debugger")
+logger = logging.getLogger()
 
 reg = {
     "realm": re.compile(r'realm="(.*?)"'),
@@ -37,18 +37,21 @@ div.gallery img {width: 100%;height: auto;}
 var text = img.alt;
 navigator.clipboard.writeText(text);}</script>\n\n"""
     )
-    logger.debug(f"Generating {path}")
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(f"Generating {path}")
     with path.open("w") as f:
         f.write(html)
 
 
 def create_folder(path: Path):
-    logger.debug(f"Creating {path}")
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(f"Creating {path}")
     path.mkdir(parents=True)
 
 
 def create_file(path: Path):
-    logger.debug(f"Creating {path}")
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(f"Creating {path}")
     path.open("w", encoding="utf-8")
 
 

@@ -11,7 +11,8 @@ from modules.rtsp import RTSPClient, Status
 sys.path.append("..")
 
 dummy_route = "/0x8b6c42"
-logger = logging.getLogger("debugger")
+logger = logging.getLogger()
+logger_is_enabled = logger.isEnabledFor(logging.DEBUG)
 
 
 def attack(target: RTSPClient, port=None, route=None, credentials=None):
@@ -25,12 +26,11 @@ def attack(target: RTSPClient, port=None, route=None, credentials=None):
     # Create socket connection.
     ok = target.connect(port)
     if not ok:
-        if target.status is Status.UNIDENTIFIED:
-            logger.debug(
-                f"Failed to connect {str(target)}:", exc_info=target.last_error
-            )
-        else:
-            logger.debug(f"Failed to connect {str(target)}: {target.status.name}")
+        if logger_is_enabled:
+            if target.status is Status.UNIDENTIFIED:
+                logger.debug(f"Failed to connect {target}:", exc_info=target.last_error)
+            else:
+                logger.debug(f"Failed to connect {target}: {target.status.name}")
         return False
 
     attack_url = RTSPClient.get_rtsp_url(target.ip, port, credentials, route)
@@ -41,9 +41,13 @@ def attack(target: RTSPClient, port=None, route=None, credentials=None):
         response = "\n\t".join(target.data.split("\r\n")).rstrip()
     else:
         response = ""
-    logger.debug(f"\nSent:\n\t{request}\nReceived:\n\t{response}")
+    if logger_is_enabled:
+        logger.debug(f"\nSent:\n\t{request}\nReceived:\n\t{response}")
     if not ok:
-        logger.debug(f"Failed to authorize {attack_url}", exc_info=target.last_error)
+        if logger_is_enabled:
+            logger.debug(
+                f"Failed to authorize {attack_url}", exc_info=target.last_error
+            )
         return False
 
     return True
@@ -78,9 +82,10 @@ def attack_route(target: RTSPClient):
 def attack_credentials(target: RTSPClient):
     def _log_working_stream():
         console.print("Working stream at", target)
-        logger.debug(
-            f"Working stream at {str(target)} with {target.auth_method.name} auth"
-        )
+        if logger_is_enabled:
+            logger.debug(
+                f"Working stream at {target} with {target.auth_method.name} auth"
+            )
 
     if target.is_authorized:
         _log_working_stream()
@@ -134,9 +139,10 @@ def get_screenshot(target: RTSPClient, tries=0):
                     tries += 1
                     return get_screenshot(target, tries)
                 else:
-                    logger.debug(
-                        f"Broken video stream or unknown issues with {str(target)}"
-                    )
+                    if logger_is_enabled:
+                        logger.debug(
+                            f"Broken video stream or unknown issues with {target}"
+                        )
                     return
             video.streams.video[0].thread_type = "AUTO"
             for frame in video.decode(video=0):
@@ -144,7 +150,8 @@ def get_screenshot(target: RTSPClient, tries=0):
                 break
     except (MemoryError, PermissionError, av.InvalidDataError) as e:
         # Those errors occurs when there's too much SCREENSHOT_THREADS.
-        logger.debug(f"Missed screenshot of {str(target)}: {repr(e)}")
+        if logger_is_enabled:
+            logger.debug(f"Missed screenshot of {target}: {repr(e)}")
         # Try one more time in hope for luck.
         if tries == 2:
             tries += 1
@@ -156,9 +163,11 @@ def get_screenshot(target: RTSPClient, tries=0):
             )
             return
     except Exception as e:
-        logger.debug(f"get_screenshot failed with {str(target)}: {repr(e)}")
+        if logger_is_enabled:
+            logger.debug(f"get_screenshot failed with {target}: {repr(e)}")
         return
 
     console.print("[bold]Captured screenshot for", target)
-    logger.debug(f"Captured screenshot for {str(target)}")
+    if logger_is_enabled:
+        logger.debug(f"Captured screenshot for {target}")
     return file_path

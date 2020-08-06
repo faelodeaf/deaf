@@ -8,16 +8,14 @@ import av
 from rich.panel import Panel
 
 import config
-from modules import utils, worker
+from modules import attack, utils, worker
 from modules.cli.input import parser
 from modules.cli.output import console
 from modules.rtsp import RTSPClient
 
 
 def start_threads(number: int, target: Callable, *args) -> List[threading.Thread]:
-    debugger.debug(
-        f"Starting {number} threads of {target.__module__}.{target.__name__}"
-    )
+    logger.debug(f"Starting {number} threads of {target.__module__}.{target.__name__}")
     threads = []
     for _ in range(number):
         thread = threading.Thread(target=target, args=args)
@@ -38,31 +36,17 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Logging module set up
-    debugger = logging.getLogger("debugger")
-    debugger.setLevel(logging.DEBUG)
+    logger = logging.getLogger()
+    attack.logger_is_enabled = args.debug
     if args.debug:
+        logger.setLevel(logging.DEBUG)
         file_handler = logging.FileHandler(config.DEBUG_LOG_FILE, "w")
         file_handler.setFormatter(
             logging.Formatter(
                 "[%(asctime)s] [%(levelname)s] [%(threadName)s] [%(funcName)s] %(message)s"
             )
         )
-        debugger.addHandler(file_handler)
-    else:
-        debugger.addHandler(logging.NullHandler())
-    debugger.propagate = False
-
-    # Redirect PyAV logs only to file
-    libav_logger = logging.getLogger("libav")
-    libav_logger.setLevel(logging.DEBUG)
-    if args.debug:
-        libav_logger.addHandler(file_handler)
-    libav_logger.propagate = False
-    av_logger = logging.getLogger("av")
-    av_logger.setLevel(logging.DEBUG)
-    if args.debug:
-        av_logger.addHandler(file_handler)
-    av_logger.propagate = False
+        logger.addHandler(file_handler)
     # This disables ValueError from av module printing to console, but this also
     # means we won't get any logs from av, if they aren't FATAL or PANIC level.
     av.logging.set_level(av.logging.FATAL)
@@ -99,11 +83,14 @@ if __name__ == "__main__":
         check_queue.put(RTSPClient(ip=targets.popleft(), timeout=args.timeout))
 
     wait_for(check_queue, check_threads)
-    debugger.debug("Check queue and threads finished")
+    if args.debug:
+        logger.debug("Check queue and threads finished")
     wait_for(brute_queue, brute_threads)
-    debugger.debug("Brute queue and threads finished")
+    if args.debug:
+        logger.debug("Brute queue and threads finished")
     wait_for(screenshot_queue, screenshot_threads)
-    debugger.debug("Screenshot queue and threads finished")
+    if args.debug:
+        logger.debug("Screenshot queue and threads finished")
 
     config.progress_bar.stop()
 

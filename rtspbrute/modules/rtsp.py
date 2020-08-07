@@ -4,8 +4,8 @@ from ipaddress import ip_address
 from time import sleep
 from typing import List, Union
 
-from .packet import describe
-from .utils import find
+from rtspbrute.modules.packet import describe
+from rtspbrute.modules.utils import find
 
 MAX_RETRIES = 2
 

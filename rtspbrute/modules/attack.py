@@ -4,9 +4,9 @@ from typing import List
 
 import av
 
-from .cli.output import console
-from .rtsp import RTSPClient, Status
-from .utils import escape_chars
+from rtspbrute.modules.cli.output import console
+from rtspbrute.modules.rtsp import RTSPClient, Status
+from rtspbrute.modules.utils import escape_chars
 
 ROUTES: List[str]
 CREDENTIALS: List[str]

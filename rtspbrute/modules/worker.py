@@ -3,10 +3,10 @@ from threading import Lock
 
 from rich.progress import TaskID
 
-from .attack import attack_credentials, attack_route, get_screenshot
-from .cli.output import ProgressBar
-from .rtsp import RTSPClient
-from .utils import append_result
+from rtspbrute.modules.attack import attack_credentials, attack_route, get_screenshot
+from rtspbrute.modules.cli.output import ProgressBar
+from rtspbrute.modules.rtsp import RTSPClient
+from rtspbrute.modules.utils import append_result
 
 PROGRESS_BAR: ProgressBar
 CHECK_PROGRESS: TaskID

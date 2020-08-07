@@ -1,11 +1,10 @@
 import ipaddress
 import logging
 import re
-import sys
 from pathlib import Path
 from typing import List
 
-from .cli.output import console
+from rtspbrute.modules.cli.output import console
 
 RESULT_FILE: Path
 HTML_FILE: Path

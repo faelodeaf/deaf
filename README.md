@@ -40,7 +40,7 @@
 
 ```
 USAGE
-    $ core.py [-h] [-t TARGETS] [-p PORTS [PORTS ...]] [-r ROUTES] [-c CREDENTIALS]
+    $ rtspbrute [-h] [-t TARGETS] [-p PORTS [PORTS ...]] [-r ROUTES] [-c CREDENTIALS]
               [-ct N] [-bt N] [-st N] [-T TIMEOUT] [-d]
 
 ARGUMENTS
@@ -56,11 +56,13 @@ ARGUMENTS
     -d, --debug                    enable the debug logs
 
 EXAMPLES
-    $ python core.py
-    $ python core.py -t ips.txt -p 554 5554
-    $ python core.py -r paths.txt -c combinations.txt
-    $ python core.py -st 10 -T 10
+    $ python -m rtspbrute
+    $ python -m rtspbrute -t ips.txt -p 554 5554
+    $ python -m rtspbrute -r paths.txt -c combinations.txt
+    $ python -m rtspbrute -st 10 -T 10
 ```
+
+### **"argument"** (`default_value`):
 
 - **"-t, --targets"** (`hosts.txt`): Set custom path to the input file. The file can contain IPs, IP ranges and CIDRs. Each one of them should be on a separate line, e.g.:
 

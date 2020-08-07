@@ -4,9 +4,9 @@ from typing import List
 
 import av
 
-from modules import utils
-from modules.cli.output import console
-from modules.rtsp import RTSPClient, Status
+from .cli.output import console
+from .rtsp import RTSPClient, Status
+from .utils import escape_chars
 
 ROUTES: List[str]
 CREDENTIALS: List[str]
@@ -117,7 +117,7 @@ def attack_credentials(target: RTSPClient):
 
 
 def get_screenshot(target: RTSPClient, tries=0):
-    file_name = utils.escape_chars(f"{str(target).lstrip('rtsp://')}.jpg")
+    file_name = escape_chars(f"{str(target).lstrip('rtsp://')}.jpg")
     file_path = PICS_FOLDER / file_name
 
     try:

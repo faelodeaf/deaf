@@ -1,4 +1,7 @@
 import argparse
+from pathlib import Path
+
+from rtspbrute import DEFAULT_CREDENTIALS, DEFAULT_ROUTES, DEFAULT_TARGETS
 
 
 class CustomHelpFormatter(argparse.HelpFormatter):
@@ -13,6 +16,13 @@ class CustomHelpFormatter(argparse.HelpFormatter):
         return ", ".join(action.option_strings) + " " + args_string
 
 
+def file_path(path):
+    if Path(path).exists():
+        return Path(path)
+    else:
+        raise argparse.ArgumentTypeError(f"{path} is not a valid path")
+
+
 fmt = lambda prog: CustomHelpFormatter(prog)
 parser = argparse.ArgumentParser(
     description="Tool for RTSP that brute-forces routes and credentials, makes screenshots!",
@@ -21,7 +31,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     "-t",
     "--targets",
-    default="hosts.txt",
+    type=file_path,
+    default=DEFAULT_TARGETS,
     help="the targets on which to scan for open RTSP streams",
 )
 parser.add_argument(
@@ -35,13 +46,15 @@ parser.add_argument(
 parser.add_argument(
     "-r",
     "--routes",
-    default="routes.txt",
+    type=file_path,
+    default=DEFAULT_ROUTES,
     help="the path on which to load a custom routes",
 )
 parser.add_argument(
     "-c",
     "--credentials",
-    default="credentials.txt",
+    type=file_path,
+    default=DEFAULT_CREDENTIALS,
     help="the path on which to load a custom credentials",
 )
 parser.add_argument(

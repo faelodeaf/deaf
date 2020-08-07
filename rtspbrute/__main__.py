@@ -9,14 +9,13 @@ from typing import Callable, List
 import av
 from rich.panel import Panel
 
-from modules import attack, utils, worker
-from modules.cli.input import parser
-from modules.cli.output import console, progress_bar
-from modules.rtsp import RTSPClient
+from rtspbrute.modules import attack, utils, worker
+from rtspbrute.modules.cli.input import parser
+from rtspbrute.modules.cli.output import console, progress_bar
+from rtspbrute.modules.rtsp import RTSPClient
 
 
 def start_threads(number: int, target: Callable, *args) -> List[threading.Thread]:
-    logger.debug(f"Starting {number} threads of {target.__module__}.{target.__name__}")
     threads = []
     for _ in range(number):
         thread = threading.Thread(target=target, args=args)
@@ -33,7 +32,7 @@ def wait_for(queue: Queue, threads: List[threading.Thread]):
     [t.join() for t in threads]
 
 
-if __name__ == "__main__":
+def main():
     args = parser.parse_args()
 
     # Folders and files set up
@@ -80,12 +79,22 @@ if __name__ == "__main__":
     brute_queue = Queue()
     screenshot_queue = Queue()
 
+    if args.debug:
+        logger.debug(f"Starting {args.check_threads} threads of worker.brute_routes")
     check_threads = start_threads(
         args.check_threads, worker.brute_routes, check_queue, brute_queue
     )
+    if args.debug:
+        logger.debug(
+            f"Starting {args.brute_threads} threads of worker.brute_credentials"
+        )
     brute_threads = start_threads(
         args.brute_threads, worker.brute_credentials, brute_queue, screenshot_queue
     )
+    if args.debug:
+        logger.debug(
+            f"Starting {args.screenshot_threads} threads of worker.screenshot_targets"
+        )
     screenshot_threads = start_threads(
         args.screenshot_threads, worker.screenshot_targets, screenshot_queue
     )
@@ -116,3 +125,7 @@ if __name__ == "__main__":
         Panel(f"[bright_green]{str(REPORT_FOLDER)}", title="Report", expand=False),
         justify="center",
     )
+
+
+if __name__ == "__main__":
+    main()

@@ -5,8 +5,7 @@ import sys
 from pathlib import Path
 from typing import List
 
-from modules.cli.output import console
-from modules.rtsp import RTSPClient
+from .cli.output import console
 
 RESULT_FILE: Path
 HTML_FILE: Path
@@ -57,7 +56,7 @@ def create_file(path: Path):
     path.open("w", encoding="utf-8")
 
 
-def append_result(lock, pic_file: Path, rtsp: RTSPClient):
+def append_result(lock, pic_file: Path, rtsp):
     with lock:
         # Append to .txt result file
         with RESULT_FILE.open("a") as f:
@@ -70,7 +69,7 @@ def append_result(lock, pic_file: Path, rtsp: RTSPClient):
             f.write(
                 (
                     '<div class="responsive"><div class="gallery">\n'
-                    f'<img src="{pic_file.parent.name}/{pic_file.name}" alt="{str(rtsp)}" '
+                    f'<img src="{pic_file.parent.name}/{pic_file.name}" alt="{rtsp}" '
                     'width="600" height="400" onclick="f(this)"></div></div>\n\n'
                 )
             )
@@ -91,28 +90,22 @@ def find(var: str, response: str):
         return None
 
 
-def load_txt(path: str, name: str) -> List[str]:
+def load_txt(path: Path, name: str) -> List[str]:
     result = []
-    try:
-        if name == "credentials":
-            result = [line.strip("\t\r") for line in get_lines(path)]
-        elif name == "routes":
-            result = get_lines(path)
-        elif name == "targets":
-            result = [
-                target for line in get_lines(path) for target in parse_input_line(line)
-            ]
-    except FileNotFoundError as e:
-        console.print(f"[red]Couldn't read {name} file at {path}: {repr(e)}")
-        sys.exit()
+    if name == "credentials":
+        result = [line.strip("\t\r") for line in get_lines(path)]
+    elif name == "routes":
+        result = get_lines(path)
+    elif name == "targets":
+        result = [
+            target for line in get_lines(path) for target in parse_input_line(line)
+        ]
     console.print(f"[yellow]Loaded {len(result)} {name} from {path}")
     return result
 
 
-def get_lines(path: str) -> List[str]:
-    p = Path(path)
-    lines = p.read_text().splitlines()
-    return lines
+def get_lines(path: Path) -> List[str]:
+    return path.read_text().splitlines()
 
 
 def parse_input_line(input_line: str) -> List[str]:

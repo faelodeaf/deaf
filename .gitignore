@@ -11,4 +11,4 @@ debug.log
 # Development
 .vscode/*
 rtspbrute-env/
-test*
+test/

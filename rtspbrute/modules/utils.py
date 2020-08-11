@@ -55,23 +55,22 @@ def create_file(path: Path):
     path.open("w", encoding="utf-8")
 
 
-def append_result(lock, pic_file: Path, rtsp):
+def append_result(lock, pic_file: Path, rtsp_url: str):
     with lock:
         # Append to .txt result file
         with RESULT_FILE.open("a") as f:
-            f.write(f"{str(rtsp)}\n")
+            f.write(f"{rtsp_url}\n")
 
         # Insert to .html gallery file
-        if not pic_file.exists():
-            return
-        with HTML_FILE.open("a") as f:
-            f.write(
-                (
-                    '<div class="responsive"><div class="gallery">\n'
-                    f'<img src="{pic_file.parent.name}/{pic_file.name}" alt="{rtsp}" '
-                    'width="600" height="400" onclick="f(this)"></div></div>\n\n'
+        if pic_file.exists():
+            with HTML_FILE.open("a") as f:
+                f.write(
+                    (
+                        '<div class="responsive"><div class="gallery">\n'
+                        f'<img src="{pic_file.parent.name}/{pic_file.name}" alt="{rtsp_url}" '
+                        'width="600" height="400" onclick="f(this)"></div></div>\n\n'
+                    )
                 )
-            )
 
 
 def escape_chars(s: str):

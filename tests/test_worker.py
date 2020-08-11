@@ -1,14 +1,18 @@
+from queue import Queue
+
 import pytest
 
 from rtspbrute.modules import worker
+from rtspbrute.modules.cli.output import ProgressBar
+from rtspbrute.modules.rtsp import RTSPClient
 
-target = worker.RTSPClient("0.0.0.0")
+target = RTSPClient("0.0.0.0")
 
 
 @pytest.fixture
 def queues():
-    input_queue = worker.Queue()
-    output_queue = worker.Queue()
+    input_queue = Queue()
+    output_queue = Queue()
     input_queue.put(target)
     input_queue.put(None)
 
@@ -18,7 +22,7 @@ def queues():
 class TestBruteRoutes:
     def test_with_result(self, queues, monkeypatch):
         input_queue, output_queue = queues
-        worker.PROGRESS_BAR = worker.ProgressBar()
+        worker.PROGRESS_BAR = ProgressBar()
         worker.CHECK_PROGRESS = worker.PROGRESS_BAR.add_task("Check", total=1)
         worker.BRUTE_PROGRESS = worker.PROGRESS_BAR.add_task("Brute", total=0)
         check_task = worker.PROGRESS_BAR.tasks[worker.CHECK_PROGRESS]
@@ -38,7 +42,7 @@ class TestBruteRoutes:
 
     def test_without_result(self, queues, monkeypatch):
         input_queue, output_queue = queues
-        worker.PROGRESS_BAR = worker.ProgressBar()
+        worker.PROGRESS_BAR = ProgressBar()
         worker.CHECK_PROGRESS = worker.PROGRESS_BAR.add_task("Check", total=1)
         worker.BRUTE_PROGRESS = worker.PROGRESS_BAR.add_task("Brute", total=0)
         check_task = worker.PROGRESS_BAR.tasks[worker.CHECK_PROGRESS]
@@ -59,7 +63,7 @@ class TestBruteRoutes:
 class TestBruteCredentials:
     def test_with_result(self, queues, monkeypatch):
         input_queue, output_queue = queues
-        worker.PROGRESS_BAR = worker.ProgressBar()
+        worker.PROGRESS_BAR = ProgressBar()
         worker.BRUTE_PROGRESS = worker.PROGRESS_BAR.add_task("Brute", total=1)
         worker.SCREENSHOT_PROGRESS = worker.PROGRESS_BAR.add_task("Screenshot", total=0)
         brute_task = worker.PROGRESS_BAR.tasks[worker.BRUTE_PROGRESS]
@@ -79,7 +83,7 @@ class TestBruteCredentials:
 
     def test_without_result(self, queues, monkeypatch):
         input_queue, output_queue = queues
-        worker.PROGRESS_BAR = worker.ProgressBar()
+        worker.PROGRESS_BAR = ProgressBar()
         worker.BRUTE_PROGRESS = worker.PROGRESS_BAR.add_task("Brute", total=1)
         worker.SCREENSHOT_PROGRESS = worker.PROGRESS_BAR.add_task("Screenshot", total=0)
         brute_task = worker.PROGRESS_BAR.tasks[worker.BRUTE_PROGRESS]
@@ -100,7 +104,7 @@ class TestBruteCredentials:
 class TestScreenshotTargets:
     def test_with_result(self, queues, tmp_path, result_file, html_file, monkeypatch):
         input_queue, _ = queues
-        worker.PROGRESS_BAR = worker.ProgressBar()
+        worker.PROGRESS_BAR = ProgressBar()
         worker.SCREENSHOT_PROGRESS = worker.PROGRESS_BAR.add_task("Screenshot", total=1)
         screenshot_task = worker.PROGRESS_BAR.tasks[worker.SCREENSHOT_PROGRESS]
 
@@ -120,7 +124,7 @@ class TestScreenshotTargets:
 
     def test_without_result(self, queues, monkeypatch):
         input_queue, _ = queues
-        worker.PROGRESS_BAR = worker.ProgressBar()
+        worker.PROGRESS_BAR = ProgressBar()
         worker.SCREENSHOT_PROGRESS = worker.PROGRESS_BAR.add_task("Screenshot", total=1)
         screenshot_task = worker.PROGRESS_BAR.tasks[worker.SCREENSHOT_PROGRESS]
 

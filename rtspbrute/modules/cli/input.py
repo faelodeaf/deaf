@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+from typing import Any
 
 from rtspbrute import DEFAULT_CREDENTIALS, DEFAULT_ROUTES, DEFAULT_TARGETS
 
@@ -16,11 +17,18 @@ class CustomHelpFormatter(argparse.HelpFormatter):
         return ", ".join(action.option_strings) + " " + args_string
 
 
-def file_path(path):
-    if Path(path).exists():
-        return Path(path)
+def file_path(value: Any):
+    if Path(value).exists():
+        return Path(value)
     else:
-        raise argparse.ArgumentTypeError(f"{path} is not a valid path")
+        raise argparse.ArgumentTypeError(f"{value} is not a valid path")
+
+
+def port(value: Any):
+    if int(value) in range(65536):
+        return int(value)
+    else:
+        raise argparse.ArgumentTypeError(f"{value} is not a valid port")
 
 
 fmt = lambda prog: CustomHelpFormatter(prog)
@@ -41,7 +49,7 @@ parser.add_argument(
     "--ports",
     nargs="+",
     default=[554],
-    type=int,
+    type=port,
     help="the ports on which to search for RTSP streams",
 )
 parser.add_argument(

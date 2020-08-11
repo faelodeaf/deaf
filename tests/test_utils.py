@@ -43,12 +43,12 @@ class TestFind:
     def test_realm(self):
         var = "realm"
         assert utils.find(var, self.response_with_auth) == "Hipcam RealServer/V1.0"
-        assert utils.find(var, self.response_without_auth) == None
+        assert utils.find(var, self.response_without_auth) == ""
 
     def test_nonce(self):
         var = "nonce"
         assert utils.find(var, self.response_with_auth) == "somenonce"
-        assert utils.find(var, self.response_without_auth) == None
+        assert utils.find(var, self.response_without_auth) == ""
 
 
 class TestLoadTxt:

@@ -59,7 +59,7 @@ class RTSPClient:
             raise e
 
         if port not in range(65536):
-            raise ValueError(f"({port}) is not a valid port")
+            raise ValueError(f"{port} is not a valid port")
 
         self.ip = ip
         self.port = port
@@ -68,13 +68,13 @@ class RTSPClient:
         self.status: Status = Status.NONE
         self.auth_method: AuthMethod = AuthMethod.NONE
         self.last_error: Union[Exception, None] = None
-        self.realm: Union[str, None] = None
-        self.nonce: Union[str, None] = None
+        self.realm: str = ""
+        self.nonce: str = ""
         self.socket = None
         self.timeout = timeout
-        self.packet = None
+        self.packet = ""
         self.cseq = 0
-        self.data = None
+        self.data = ""
 
     @property
     def route(self):
@@ -98,9 +98,9 @@ class RTSPClient:
         if port is None:
             port = self.port
 
-        self.packet = None
+        self.packet = ""
         self.cseq = 0
-        self.data = None
+        self.data = ""
         retry = 0
         while retry < MAX_RETRIES and not self.is_connected:
             try:

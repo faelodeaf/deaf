@@ -84,7 +84,7 @@ def find(var: str, response: str):
     if match:
         return match.group(1)
     else:
-        return None
+        return ""
 
 
 def load_txt(path: Path, name: str) -> List[str]:

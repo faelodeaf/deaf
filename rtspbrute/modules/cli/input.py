@@ -25,6 +25,7 @@ def file_path(path):
 
 fmt = lambda prog: CustomHelpFormatter(prog)
 parser = argparse.ArgumentParser(
+    prog="rtspbrute",
     description="Tool for RTSP that brute-forces routes and credentials, makes screenshots!",
     formatter_class=fmt,
 )

@@ -1,10 +1,9 @@
 from queue import Queue
-from threading import Lock
+from threading import RLock
 
 from rich.progress import TaskID
 
-from rtspbrute.modules.attack import (attack_credentials, attack_route,
-                                      get_screenshot)
+from rtspbrute.modules.attack import attack_credentials, attack_route, get_screenshot
 from rtspbrute.modules.cli.output import ProgressBar
 from rtspbrute.modules.rtsp import RTSPClient
 from rtspbrute.modules.utils import append_result
@@ -13,7 +12,7 @@ PROGRESS_BAR: ProgressBar
 CHECK_PROGRESS: TaskID
 BRUTE_PROGRESS: TaskID
 SCREENSHOT_PROGRESS: TaskID
-GLOBAL_LOCK = Lock()
+LOCK = RLock()
 
 
 def brute_routes(input_queue: Queue, output_queue: Queue) -> None:
@@ -54,7 +53,8 @@ def screenshot_targets(input_queue: Queue) -> None:
 
         image = get_screenshot(target_url)
         if image:
-            append_result(GLOBAL_LOCK, image, target_url)
+            with LOCK:
+                append_result(image, target_url)
 
         PROGRESS_BAR.update(SCREENSHOT_PROGRESS, advance=1)
         input_queue.task_done()

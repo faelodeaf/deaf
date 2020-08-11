@@ -58,8 +58,8 @@ class RTSPClient:
         except ValueError as e:
             raise e
 
-        if port not in range(0, 65536):
-            raise ValueError(f"({port}) isn't valid port")
+        if port not in range(65536):
+            raise ValueError(f"({port}) is not a valid port")
 
         self.ip = ip
         self.port = port

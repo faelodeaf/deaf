@@ -20,6 +20,7 @@ def _digest_auth(option, ip, port, path, credentials, realm, nonce):
     HA1 = _ha1(username, realm, password)
     HA2 = hashlib.md5(f"{option}:{uri}".encode("ascii")).hexdigest()
     response = hashlib.md5(f"{HA1}:{nonce}:{HA2}".encode("ascii")).hexdigest()
+
     return (
         "Authorization: Digest "
         f'username="{username}", '
@@ -40,7 +41,7 @@ def describe(ip, port, path, cseq, credentials, realm=None, nonce=None):
     else:
         auth_str = f"{_basic_auth(credentials)}\r\n"
 
-    packet = (
+    return (
         f"DESCRIBE rtsp://{ip}:{port}{path} RTSP/1.0\r\n"
         f"CSeq: {cseq}\r\n"
         f"{auth_str}"
@@ -48,4 +49,3 @@ def describe(ip, port, path, cseq, credentials, realm=None, nonce=None):
         "Accept: application/sdp\r\n"
         "\r\n"
     )
-    return packet

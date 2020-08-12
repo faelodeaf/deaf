@@ -17,6 +17,6 @@ before_script:
 
 test:
   script:
-    - pip install pytest, pytest-cov
+    - pip install pytest pytest-cov
     - python -m pytest tests -v
     - python -m pytest --cov=rtspbrute

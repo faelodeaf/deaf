@@ -111,7 +111,7 @@ def attack_credentials(target: RTSPClient):
     for cred in CREDENTIALS:
         ok = attack(target, credentials=cred)
         if not ok:
-            return False
+            break
         if any(code in target.data for code in ok_codes):
             target.credentials = cred
             _log_working_stream()

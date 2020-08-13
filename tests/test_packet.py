@@ -15,7 +15,13 @@ digest_auth_str = (
 )
 
 
-def test_basic_auth():
+@pytest.fixture
+def clear_cache():
+    packet._basic_auth.cache_clear()
+    packet._ha1.cache_clear()
+
+
+def test_basic_auth(clear_cache):
     assert packet._basic_auth("admin:admin") == basic_auth_str
     cache = packet._basic_auth.cache_info()
     assert cache.hits == 0
@@ -30,7 +36,7 @@ def test_basic_auth():
     assert cache.currsize == 2
 
 
-def test_ha1():
+def test_ha1(clear_cache):
     assert packet._ha1("user", "realm", "user") == "54cdcbe980ed379cae3e478ac29c67dc"
     cache = packet._ha1.cache_info()
     assert cache.hits == 0
@@ -45,7 +51,7 @@ def test_ha1():
     assert cache.currsize == 2
 
 
-def test_digest_auth():
+def test_digest_auth(clear_cache):
     option = "DESCRIBE"
     ip = "0.0.0.0"
     port = 554
@@ -60,7 +66,7 @@ def test_digest_auth():
     )
 
 
-def test_describe():
+def test_describe(clear_cache):
     ip = "0.0.0.0"
     port = 554
     path = ""

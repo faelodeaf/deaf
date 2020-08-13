@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 from typing import Any
 
-from rtspbrute import DEFAULT_CREDENTIALS, DEFAULT_ROUTES
+from rtspbrute import DEFAULT_CREDENTIALS, DEFAULT_ROUTES, __version__
 
 
 class CustomHelpFormatter(argparse.HelpFormatter):
@@ -94,3 +94,4 @@ parser.add_argument(
     "-T", "--timeout", default=2, type=int, help="the timeout to use for sockets"
 )
 parser.add_argument("-d", "--debug", action="store_true", help="enable the debug logs")
+parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")

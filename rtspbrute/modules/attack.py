@@ -29,8 +29,8 @@ def attack(target: RTSPClient, port=None, route=None, credentials=None):
         credentials = target.credentials
 
     # Create socket connection.
-    ok = target.connect(port)
-    if not ok:
+    connected = target.connect(port)
+    if not connected:
         if logger_is_enabled:
             if target.status is Status.UNIDENTIFIED:
                 logger.debug(f"Failed to connect {target}:", exc_info=target.last_error)
@@ -38,18 +38,18 @@ def attack(target: RTSPClient, port=None, route=None, credentials=None):
                 logger.debug(f"Failed to connect {target}: {target.status.name}")
         return False
 
-    attack_url = RTSPClient.get_rtsp_url(target.ip, port, credentials, route)
     # Try to authorize: create describe packet and send it.
-    ok = target.authorize(port, route, credentials)
-    request = "\n\t".join(target.packet.split("\r\n")).rstrip()
-    if target.data:
-        response = "\n\t".join(target.data.split("\r\n")).rstrip()
-    else:
-        response = ""
+    authorized = target.authorize(port, route, credentials)
     if logger_is_enabled:
+        request = "\n\t".join(target.packet.split("\r\n")).rstrip()
+        if target.data:
+            response = "\n\t".join(target.data.split("\r\n")).rstrip()
+        else:
+            response = ""
         logger.debug(f"\nSent:\n\t{request}\nReceived:\n\t{response}")
-    if not ok:
+    if not authorized:
         if logger_is_enabled:
+            attack_url = RTSPClient.get_rtsp_url(target.ip, port, credentials, route)
             logger.debug(
                 f"Failed to authorize {attack_url}", exc_info=target.last_error
             )

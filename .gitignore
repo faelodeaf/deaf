@@ -10,3 +10,8 @@ reports/
 .vscode/*
 rtspbrute-env/
 test/
+
+# Deploy
+build/
+dist/
+rtspbrute.egg-info/

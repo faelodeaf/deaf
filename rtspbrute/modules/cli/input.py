@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 from typing import Any
 
-from rtspbrute import DEFAULT_CREDENTIALS, DEFAULT_ROUTES, DEFAULT_TARGETS
+from rtspbrute import DEFAULT_CREDENTIALS, DEFAULT_ROUTES
 
 
 class CustomHelpFormatter(argparse.HelpFormatter):
@@ -41,7 +41,7 @@ parser.add_argument(
     "-t",
     "--targets",
     type=file_path,
-    default=DEFAULT_TARGETS,
+    required=True,
     help="the targets on which to scan for open RTSP streams",
 )
 parser.add_argument(

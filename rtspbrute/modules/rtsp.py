@@ -4,8 +4,8 @@ from ipaddress import ip_address
 from time import sleep
 from typing import List, Union
 
-from modules import utils
-from modules.packet import describe
+from rtspbrute.modules.packet import describe
+from rtspbrute.modules.utils import find
 
 MAX_RETRIES = 2
 
@@ -58,8 +58,8 @@ class RTSPClient:
         except ValueError as e:
             raise e
 
-        if port not in range(0, 65536):
-            raise ValueError(f"({port}) isn't valid port")
+        if port not in range(65536):
+            raise ValueError(f"{port} is not a valid port")
 
         self.ip = ip
         self.port = port
@@ -68,13 +68,13 @@ class RTSPClient:
         self.status: Status = Status.NONE
         self.auth_method: AuthMethod = AuthMethod.NONE
         self.last_error: Union[Exception, None] = None
-        self.realm: Union[str, None] = None
-        self.nonce: Union[str, None] = None
+        self.realm: str = ""
+        self.nonce: str = ""
         self.socket = None
         self.timeout = timeout
-        self.packet = None
+        self.packet = ""
         self.cseq = 0
-        self.data = None
+        self.data = ""
 
     @property
     def route(self):
@@ -98,9 +98,9 @@ class RTSPClient:
         if port is None:
             port = self.port
 
-        self.packet = None
+        self.packet = ""
         self.cseq = 0
-        self.data = None
+        self.data = ""
         retry = 0
         while retry < MAX_RETRIES and not self.is_connected:
             try:
@@ -151,8 +151,8 @@ class RTSPClient:
             self.auth_method = AuthMethod.BASIC
         elif "Digest" in self.data:
             self.auth_method = AuthMethod.DIGEST
-            self.realm = utils.find("realm", self.data)
-            self.nonce = utils.find("nonce", self.data)
+            self.realm = find("realm", self.data)
+            self.nonce = find("nonce", self.data)
         else:
             self.auth_method = AuthMethod.NONE
 

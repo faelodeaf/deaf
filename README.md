@@ -1,7 +1,10 @@
 # RTSPBrute
 
+[![pipeline status](https://gitlab.com/woolf/RTSPbrute/badges/master/pipeline.svg)](https://gitlab.com/woolf/RTSPbrute/-/commits/master)
+[![coverage report](https://gitlab.com/woolf/RTSPbrute/badges/master/coverage.svg)](https://gitlab.com/woolf/RTSPbrute/-/commits/master)
+
 <p align="center">
-   <a href="https://asciinema.org/a/351052?autoplay=1" target="_blank"><img src="https://asciinema.org/a/351052.svg" /></a>
+   <a href="https://asciinema.org/a/353291" target="_blank"><img src="https://asciinema.org/a/353291.svg" /></a>
 </p>
 
 > Inspired by [Cameradar](https://github.com/Ullaakut/cameradar)
@@ -30,18 +33,18 @@
 - `Pillow`
 - `rich`
 
-### Steps to install
+Install with `pip` or your favorite PyPi package manager.
 
-1. `git clone https://gitlab.com/woolf/RTSPbrute.git`
-2. `cd RTSPbrute`
-3. `pip install -r requirements.txt`
+```
+pip install rtspbrute
+```
 
 ## CLI
 
 ```
 USAGE
-    $ core.py [-h] [-t TARGETS] [-p PORTS [PORTS ...]] [-r ROUTES] [-c CREDENTIALS]
-              [-ct N] [-bt N] [-st N] [-T TIMEOUT] [-d]
+    $ rtspbrute -t TARGETS [-p PORTS [PORTS ...]] [-r ROUTES] [-c CREDENTIALS]
+                [-ct N] [-bt N] [-st N] [-T TIMEOUT] [-d] [-h]
 
 ARGUMENTS
     -h, --help                     show this help message and exit
@@ -56,13 +59,15 @@ ARGUMENTS
     -d, --debug                    enable the debug logs
 
 EXAMPLES
-    $ python core.py
-    $ python core.py -t ips.txt -p 554 5554
-    $ python core.py -r paths.txt -c combinations.txt
-    $ python core.py -st 10 -T 10
+    $ rtspbrute -h
+    $ rtspbrute -t hosts.txt -p 554 5554 8554 -d
+    $ rtspbrute -t ips.txt -r routes.txt -c combinations.txt
+    $ rtspbrute -t targets.txt -st 10 -T 10
 ```
 
-- **"-t, --targets"** (`hosts.txt`): Set custom path to the input file. The file can contain IPs, IP ranges and CIDRs. Each one of them should be on a separate line, e.g.:
+### **"argument"** (`default_value`):
+
+- **"-t, --targets"** (_No default value_): Set the path to the input file. The file can contain IPs, IP ranges and CIDRs. Each one of them should be on a separate line, e.g.:
 
 ```
 0.0.0.0
@@ -91,12 +96,3 @@ user:user
 - **"-st, --screenshot-threads"** (`20`): Set custom number of threads to screenshot the streams. Smaller number leads to more successful screenshots: when there's too much threads PyAV will throw errors and wouldn't connect to target.
 - **"-T, --timeout"** (`2`): Set custom timeout value for socket connections
 - **"-d, --debug"** (`False`): Enable debug logging to `debug.log` file
-
-## TODO
-
-- [x] Add support for multiple ports
-- [ ] Optimize for large input
-- [ ] Add tests
-- [x] Add CLI
-- [x] Beautify format of output to terminal
-- [ ] Release on PyPI

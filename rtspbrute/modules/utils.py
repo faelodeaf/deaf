@@ -1,15 +1,15 @@
 import ipaddress
 import logging
 import re
-import sys
 from pathlib import Path
 from typing import List
 
-from modules.cli.output import console
-from modules.rtsp import RTSPClient
+from rtspbrute.modules.cli.output import console
 
-logger = logging.getLogger("debugger")
+RESULT_FILE: Path
+HTML_FILE: Path
 
+logger = logging.getLogger()
 reg = {
     "realm": re.compile(r'realm="(.*?)"'),
     "nonce": re.compile(r'nonce="(.*?)"'),
@@ -37,37 +37,36 @@ div.gallery img {width: 100%;height: auto;}
 var text = img.alt;
 navigator.clipboard.writeText(text);}</script>\n\n"""
     )
-    logger.debug(f"Generating {path}")
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(f"Generating {path}")
     with path.open("w") as f:
         f.write(html)
 
 
 def create_folder(path: Path):
-    logger.debug(f"Creating {path}")
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(f"Creating {path}")
     path.mkdir(parents=True)
 
 
 def create_file(path: Path):
-    logger.debug(f"Creating {path}")
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(f"Creating {path}")
     path.open("w", encoding="utf-8")
 
 
-def append_result(
-    lock, result_file: Path, html_file: Path, pic_file: Path, rtsp: RTSPClient
-):
-    with lock:
-        # Append to .txt result file
-        with result_file.open("a") as f:
-            f.write(f"{str(rtsp)}\n")
+def append_result(pic_file: Path, rtsp_url: str):
+    # Append to .txt result file
+    with RESULT_FILE.open("a") as f:
+        f.write(f"{rtsp_url}\n")
 
-        # Insert to .html gallery file
-        if not pic_file.exists():
-            return
-        with html_file.open("a") as f:
+    # Insert to .html gallery file
+    if pic_file.exists():
+        with HTML_FILE.open("a") as f:
             f.write(
                 (
                     '<div class="responsive"><div class="gallery">\n'
-                    f'<img src="{pic_file.parent.name}/{pic_file.name}" alt="{str(rtsp)}" '
+                    f'<img src="{pic_file.parent.name}/{pic_file.name}" alt="{rtsp_url}" '
                     'width="600" height="400" onclick="f(this)"></div></div>\n\n'
                 )
             )
@@ -85,31 +84,25 @@ def find(var: str, response: str):
     if match:
         return match.group(1)
     else:
-        return None
+        return ""
 
 
-def load_txt(path: str, name: str) -> List[str]:
+def load_txt(path: Path, name: str) -> List[str]:
     result = []
-    try:
-        if name == "credentials":
-            result = [line.strip("\t\r") for line in get_lines(path)]
-        elif name == "routes":
-            result = get_lines(path)
-        elif name == "targets":
-            result = [
-                target for line in get_lines(path) for target in parse_input_line(line)
-            ]
-    except FileNotFoundError as e:
-        console.print(f"[red]Couldn't read {name} file at {path}: {repr(e)}")
-        sys.exit()
+    if name == "credentials":
+        result = [line.strip("\t\r") for line in get_lines(path)]
+    elif name == "routes":
+        result = get_lines(path)
+    elif name == "targets":
+        result = [
+            target for line in get_lines(path) for target in parse_input_line(line)
+        ]
     console.print(f"[yellow]Loaded {len(result)} {name} from {path}")
     return result
 
 
-def get_lines(path: str) -> List[str]:
-    p = Path(path)
-    lines = p.read_text().splitlines()
-    return lines
+def get_lines(path: Path) -> List[str]:
+    return path.read_text().splitlines()
 
 
 def parse_input_line(input_line: str) -> List[str]:

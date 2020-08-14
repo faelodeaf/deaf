@@ -1,0 +1,31 @@
+image: python:3.7
+
+stages:
+  - build
+  - test
+  - release
+
+packaging:
+  stage: build
+  script:
+    - pip install --upgrade setuptools wheel
+    - python3 setup.py sdist bdist_wheel
+  artifacts:
+    paths:
+      - dist
+
+pytest:
+  stage: test
+  script:
+    - pip install dist/*.whl
+    - pip install pytest pytest-cov
+    - pytest
+    - pytest --cov=rtspbrute
+
+upload:
+  stage: release
+  only:
+    - tags
+  script:
+    - pip install --upgrade twine
+    - twine upload dist/*

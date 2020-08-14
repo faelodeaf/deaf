@@ -3,7 +3,7 @@ from rich.progress import BarColumn, Progress, TaskID
 
 
 class ProgressBar(Progress):
-    def __init__(self, console: Console) -> None:
+    def __init__(self, console: Console = Console()) -> None:
         super().__init__(
             "[progress.description]{task.description}",
             BarColumn(),

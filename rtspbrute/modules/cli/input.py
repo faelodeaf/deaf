@@ -1,4 +1,8 @@
 import argparse
+from pathlib import Path
+from typing import Any
+
+from rtspbrute import DEFAULT_CREDENTIALS, DEFAULT_ROUTES, __version__
 
 
 class CustomHelpFormatter(argparse.HelpFormatter):
@@ -13,15 +17,31 @@ class CustomHelpFormatter(argparse.HelpFormatter):
         return ", ".join(action.option_strings) + " " + args_string
 
 
+def file_path(value: Any):
+    if Path(value).exists():
+        return Path(value)
+    else:
+        raise argparse.ArgumentTypeError(f"{value} is not a valid path")
+
+
+def port(value: Any):
+    if int(value) in range(65536):
+        return int(value)
+    else:
+        raise argparse.ArgumentTypeError(f"{value} is not a valid port")
+
+
 fmt = lambda prog: CustomHelpFormatter(prog)
 parser = argparse.ArgumentParser(
+    prog="rtspbrute",
     description="Tool for RTSP that brute-forces routes and credentials, makes screenshots!",
     formatter_class=fmt,
 )
 parser.add_argument(
     "-t",
     "--targets",
-    default="hosts.txt",
+    type=file_path,
+    required=True,
     help="the targets on which to scan for open RTSP streams",
 )
 parser.add_argument(
@@ -29,19 +49,21 @@ parser.add_argument(
     "--ports",
     nargs="+",
     default=[554],
-    type=int,
+    type=port,
     help="the ports on which to search for RTSP streams",
 )
 parser.add_argument(
     "-r",
     "--routes",
-    default="routes.txt",
+    type=file_path,
+    default=DEFAULT_ROUTES,
     help="the path on which to load a custom routes",
 )
 parser.add_argument(
     "-c",
     "--credentials",
-    default="credentials.txt",
+    type=file_path,
+    default=DEFAULT_CREDENTIALS,
     help="the path on which to load a custom credentials",
 )
 parser.add_argument(
@@ -72,3 +94,4 @@ parser.add_argument(
     "-T", "--timeout", default=2, type=int, help="the timeout to use for sockets"
 )
 parser.add_argument("-d", "--debug", action="store_true", help="enable the debug logs")
+parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")

@@ -23,6 +23,7 @@ setuptools.setup(
         "Natural Language :: English",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Topic :: Internet",
@@ -37,7 +38,7 @@ setuptools.setup(
     },
     packages=setuptools.find_packages(),
     install_requires=["av<9", "Pillow<8", "rich<6"],
-    python_requires=">=3.7",
+    python_requires=">=3.6",
     package_data={"rtspbrute": ["credentials.txt", "routes.txt"],},
     entry_points={"console_scripts": ["rtspbrute = rtspbrute.__main__:main"]},
 )

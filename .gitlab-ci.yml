@@ -1,22 +1,31 @@
-image: python:latest
+image: python:3.7
 
-variables:
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+stages:
+  - build
+  - test
+  - release
 
-cache:
-  paths:
-    - .cache/pip
-    - venv/
-
-before_script:
-  - python -V
-  - pip install virtualenv
-  - virtualenv venv
-  - source venv/bin/activate
-  - pip install -r requirements.txt
-
-test:
+packaging:
+  stage: build
   script:
+    - pip install --upgrade setuptools wheel
+    - python3 setup.py sdist bdist_wheel
+  artifacts:
+    paths:
+      - dist
+
+pytest:
+  stage: test
+  script:
+    - pip install dist/*.whl
     - pip install pytest pytest-cov
-    - python -m pytest tests -v
-    - python -m pytest --cov=rtspbrute
+    - pytest
+    - pytest --cov=rtspbrute
+
+upload:
+  stage: release
+  only:
+    - tags
+  script:
+    - pip install --upgrade twine
+    - twine upload dist/*

@@ -39,8 +39,7 @@ navigator.clipboard.writeText(text);}</script>\n\n"""
     )
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Generating {path}")
-    with path.open("w") as f:
-        f.write(html)
+    path.write_text(html)
 
 
 def create_folder(path: Path):
@@ -52,7 +51,7 @@ def create_folder(path: Path):
 def create_file(path: Path):
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Creating {path}")
-    path.open("w", encoding="utf-8")
+    path.touch()
 
 
 def append_result(pic_file: Path, rtsp_url: str):

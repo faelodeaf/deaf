@@ -1,5 +1,6 @@
 import collections
 import logging
+import platform
 import threading
 import time
 from pathlib import Path
@@ -78,6 +79,13 @@ def main():
     check_queue = Queue()
     brute_queue = Queue()
     screenshot_queue = Queue()
+
+    if platform.system() == "Linux":
+        import resource
+
+        _, _max = resource.getrlimit(resource.RLIMIT_NOFILE)
+        resource.setrlimit(resource.RLIMIT_NOFILE, (_max, _max))
+        console.print(f"[yellow]Temporary ulimit -n set to {_max}")
 
     if args.debug:
         logger.debug(f"Starting {args.check_threads} threads of worker.brute_routes")

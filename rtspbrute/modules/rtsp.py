@@ -51,7 +51,11 @@ class RTSPClient:
     )
 
     def __init__(
-        self, ip: str, port: int = 554, timeout: int = 2, credentials: str = ":",
+        self,
+        ip: str,
+        port: int = 554,
+        timeout: int = 2,
+        credentials: str = ":",
     ) -> None:
         try:
             ip_address(ip)

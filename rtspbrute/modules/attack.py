@@ -19,10 +19,15 @@ MAX_SCREENSHOT_TRIES = 2
 # 401, 403: credentials are wrong but the route might be okay.
 # 404: route is incorrect but the credentials might be okay.
 # 200: stream is accessed successfully.
-ROUTE_OK_CODES = ["RTSP/1.0 200", "RTSP/1.0 401", "RTSP/1.0 403",
-                  "RTSP/2.0 200", "RTSP/2.0 401", "RTSP/2.0 403"]
-CREDENTIALS_OK_CODES = ["RTSP/1.0 200", "RTSP/1.0 404",
-                        "RTSP/2.0 200", "RTSP/2.0 404"]
+ROUTE_OK_CODES = [
+    "RTSP/1.0 200",
+    "RTSP/1.0 401",
+    "RTSP/1.0 403",
+    "RTSP/2.0 200",
+    "RTSP/2.0 401",
+    "RTSP/2.0 403",
+]
+CREDENTIALS_OK_CODES = ["RTSP/1.0 200", "RTSP/1.0 404", "RTSP/2.0 200", "RTSP/2.0 404"]
 
 logger = logging.getLogger()
 logger_is_enabled = logger.isEnabledFor(logging.DEBUG)
@@ -121,22 +126,22 @@ def attack_credentials(target: RTSPClient):
 
 def _is_video_stream(stream):
     return (
-            stream.profile is not None
-            and stream.start_time is not None
-            and stream.codec_context.format is not None
+        stream.profile is not None
+        and stream.start_time is not None
+        and stream.codec_context.format is not None
     )
 
 
 def get_screenshot(rtsp_url: str, tries=1):
     try:
         with av.open(
-                rtsp_url,
-                options={
-                    "rtsp_transport": "tcp",
-                    "rtsp_flags": "prefer_tcp",
-                    "stimeout": "3000000",
-                },
-                timeout=60.0,
+            rtsp_url,
+            options={
+                "rtsp_transport": "tcp",
+                "rtsp_flags": "prefer_tcp",
+                "stimeout": "3000000",
+            },
+            timeout=60.0,
         ) as container:
             stream = container.streams.video[0]
             if _is_video_stream(stream):
@@ -147,7 +152,8 @@ def get_screenshot(rtsp_url: str, tries=1):
                     frame.to_image().save(file_path)
                     break
                 console.print(
-                    f"[bold]Captured screenshot for", f"[underline cyan]{rtsp_url}",
+                    f"[bold]Captured screenshot for",
+                    f"[underline cyan]{rtsp_url}",
                 )
                 if logger_is_enabled:
                     logger.debug(f"Captured screenshot for {rtsp_url}")

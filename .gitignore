@@ -8,7 +8,7 @@ reports/
 
 # Development
 .vscode/*
-rtspbrute-env/
+venv/
 test/
 
 # Deploy

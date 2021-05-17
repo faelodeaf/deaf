@@ -44,9 +44,7 @@ class TestBruteRoutes:
         input_queue, output_queue = queues
         worker.PROGRESS_BAR = ProgressBar()
         worker.CHECK_PROGRESS = worker.PROGRESS_BAR.add_task("Check", total=1)
-        worker.BRUTE_PROGRESS = worker.PROGRESS_BAR.add_task("Brute", total=0)
         check_task = worker.PROGRESS_BAR.tasks[worker.CHECK_PROGRESS]
-        brute_task = worker.PROGRESS_BAR.tasks[worker.BRUTE_PROGRESS]
 
         _attack_route_bad = lambda t: False
         monkeypatch.setattr(worker, "attack_route", _attack_route_bad)
@@ -56,8 +54,6 @@ class TestBruteRoutes:
         assert output_queue.qsize() == 0
         assert check_task.finished
         assert check_task.remaining == 0
-        assert brute_task.finished
-        assert brute_task.remaining == 0
 
 
 class TestBruteCredentials:
@@ -85,9 +81,7 @@ class TestBruteCredentials:
         input_queue, output_queue = queues
         worker.PROGRESS_BAR = ProgressBar()
         worker.BRUTE_PROGRESS = worker.PROGRESS_BAR.add_task("Brute", total=1)
-        worker.SCREENSHOT_PROGRESS = worker.PROGRESS_BAR.add_task("Screenshot", total=0)
         brute_task = worker.PROGRESS_BAR.tasks[worker.BRUTE_PROGRESS]
-        screenshot_task = worker.PROGRESS_BAR.tasks[worker.SCREENSHOT_PROGRESS]
 
         _attack_credentials_bad = lambda t: False
         monkeypatch.setattr(worker, "attack_credentials", _attack_credentials_bad)
@@ -97,8 +91,6 @@ class TestBruteCredentials:
         assert output_queue.qsize() == 0
         assert brute_task.finished
         assert brute_task.remaining == 0
-        assert screenshot_task.finished
-        assert screenshot_task.remaining == 0
 
 
 class TestScreenshotTargets:

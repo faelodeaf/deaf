@@ -16,6 +16,14 @@ PICS_FOLDER: Path
 DUMMY_ROUTE = "/0x8b6c42"
 MAX_SCREENSHOT_TRIES = 2
 
+# 401, 403: credentials are wrong but the route might be okay.
+# 404: route is incorrect but the credentials might be okay.
+# 200: stream is accessed successfully.
+ROUTE_OK_CODES = ["RTSP/1.0 200", "RTSP/1.0 401", "RTSP/1.0 403",
+                  "RTSP/2.0 200", "RTSP/2.0 401", "RTSP/2.0 403"]
+CREDENTIALS_OK_CODES = ["RTSP/1.0 200", "RTSP/1.0 404",
+                        "RTSP/2.0 200", "RTSP/2.0 404"]
+
 logger = logging.getLogger()
 logger_is_enabled = logger.isEnabledFor(logging.DEBUG)
 
@@ -60,16 +68,12 @@ def attack(target: RTSPClient, port=None, route=None, credentials=None):
 
 
 def attack_route(target: RTSPClient):
-    # If it's a 401 or 403, it means that the credentials are wrong but the route might be okay.
-    # If it's a 200, the stream is accessed successfully.
-    ok_codes = ["200", "401", "403"]
-
     # If the stream responds positively to the dummy route, it means
     # it doesn't require (or respect the RFC) a route and the attack
     # can be skipped.
     for port in PORTS:
         ok = attack(target, port=port, route=DUMMY_ROUTE)
-        if ok and any(code in target.data for code in ok_codes):
+        if ok and any(code in target.data for code in ROUTE_OK_CODES):
             target.port = port
             target.routes.append("/")
             return target
@@ -79,7 +83,7 @@ def attack_route(target: RTSPClient):
             ok = attack(target, port=port, route=route)
             if not ok:
                 break
-            if any(code in target.data for code in ok_codes):
+            if any(code in target.data for code in ROUTE_OK_CODES):
                 target.port = port
                 target.routes.append(route)
                 return target
@@ -97,14 +101,10 @@ def attack_credentials(target: RTSPClient):
         _log_working_stream()
         return target
 
-    # If it's a 404, it means that the route is incorrect but the credentials might be okay.
-    # If it's a 200, the stream is accessed successfully.
-    ok_codes = ["200", "404"]
-
     # If stream responds positively to no credentials, it means
     # it doesn't require them and the attack can be skipped.
     ok = attack(target, credentials=":")
-    if ok and any(code in target.data for code in ok_codes):
+    if ok and any(code in target.data for code in CREDENTIALS_OK_CODES):
         _log_working_stream()
         return target
 
@@ -113,7 +113,7 @@ def attack_credentials(target: RTSPClient):
         ok = attack(target, credentials=cred)
         if not ok:
             break
-        if any(code in target.data for code in ok_codes):
+        if any(code in target.data for code in CREDENTIALS_OK_CODES):
             target.credentials = cred
             _log_working_stream()
             return target
@@ -121,22 +121,22 @@ def attack_credentials(target: RTSPClient):
 
 def _is_video_stream(stream):
     return (
-        stream.profile is not None
-        and stream.start_time is not None
-        and stream.codec_context.format is not None
+            stream.profile is not None
+            and stream.start_time is not None
+            and stream.codec_context.format is not None
     )
 
 
 def get_screenshot(rtsp_url: str, tries=1):
     try:
         with av.open(
-            rtsp_url,
-            options={
-                "rtsp_transport": "tcp",
-                "rtsp_flags": "prefer_tcp",
-                "stimeout": "3000000",
-            },
-            timeout=60.0,
+                rtsp_url,
+                options={
+                    "rtsp_transport": "tcp",
+                    "rtsp_flags": "prefer_tcp",
+                    "stimeout": "3000000",
+                },
+                timeout=60.0,
         ) as container:
             stream = container.streams.video[0]
             if _is_video_stream(stream):

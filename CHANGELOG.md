@@ -6,10 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.4] - 2021-05-17
+### Fixed
+- Issue #2.
+
 ## [1.0.3] - 2020-08-20
 ### Added
 - Setting the soft limit of NOFILE to maximum on Linux.
-- The total number of images and a tip to top of the HTML file.
+- The total number of images, and a tip to top of the HTML file.
 
 ### Changed
 - Debug logging to ignore timeout errors.
@@ -29,7 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 - First official release.
 
-[Unreleased]: https://gitlab.com/woolf/RTSPbrute/-/compare/1.0.3...master
+[Unreleased]: https://gitlab.com/woolf/RTSPbrute/-/compare/1.0.4...master
+[1.0.4]: https://gitlab.com/woolf/RTSPbrute/-/compare/1.0.3...1.0.4
 [1.0.3]: https://gitlab.com/woolf/RTSPbrute/-/compare/1.0.2...1.0.3
 [1.0.2]: https://gitlab.com/woolf/RTSPbrute/-/compare/1.0.1...1.0.2
 [1.0.1]: https://gitlab.com/woolf/RTSPbrute/-/compare/1.0.0...1.0.1

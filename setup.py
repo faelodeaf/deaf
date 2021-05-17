@@ -26,6 +26,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Topic :: Internet",
         "Topic :: Multimedia :: Video :: Capture",
         "Topic :: Security",
@@ -37,8 +38,8 @@ setuptools.setup(
         "Tracker": "https://gitlab.com/woolf/RTSPbrute/-/issues",
     },
     packages=setuptools.find_packages(),
-    install_requires=["av<9", "Pillow<8", "rich<6"],
+    install_requires=["av<9", "Pillow<9", "rich<11"],
     python_requires=">=3.6",
-    package_data={"rtspbrute": ["credentials.txt", "routes.txt"],},
+    package_data={"rtspbrute": ["credentials.txt", "routes.txt"]},
     entry_points={"console_scripts": ["rtspbrute = rtspbrute.__main__:main"]},
 )
